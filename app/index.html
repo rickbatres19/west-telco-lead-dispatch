@@ -812,9 +812,9 @@
           <thead><tr>
             <th>Empresa</th><th>País</th><th>Producto</th><th>Score</th>
             <th>Contacto</th><th>Cargo</th><th>Depto</th>
-            <th>LinkedIn</th><th>Email</th><th>Fuentes</th><th>Asignado a</th>
+            <th>LinkedIn</th><th>Email</th><th>Teléfono</th><th>Fuentes</th><th>Asignado a</th>
           </tr></thead>
-          <tbody id="all-tbody"><tr><td colspan="11"><div class="loading"><div class="spinner"></div> Cargando leads...</div></td></tr></tbody>
+          <tbody id="all-tbody"><tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando leads...</div></td></tr></tbody>
         </table>
         <div class="pagination" id="all-pag" style="display:none">
           <span class="page-info" id="all-pinfo"></span>
@@ -987,7 +987,7 @@ function showView(v) {
 // ===== VIEW 1 =====
 async function loadAllLeads() {
   const { data } = await sb.from('builtwith_company_targets')
-    .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,contact_position,contact_department,contact_seniority,contact_linkedin_url,company_linkedin_url,enrichment_sources,assigned_to_partner,assigned_at,enrichment_status')
+    .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,company_linkedin_url,enrichment_sources,assigned_to_partner,assigned_at,enrichment_status')
     .eq('enrichment_status','ready')
     .order('priority_score', { ascending: false })
     .limit(3000);
@@ -1018,7 +1018,7 @@ function filterAll() {
 function renderAllTable() {
   const rows = filteredAll.slice((allPage-1)*PAGE, allPage*PAGE);
   const tbody = document.getElementById('all-tbody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="11"><div class="empty">Sin resultados con estos filtros</div></td></tr>'; document.getElementById('all-pag').style.display='none'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="12"><div class="empty">Sin resultados con estos filtros</div></td></tr>'; document.getElementById('all-pag').style.display='none'; return; }
   tbody.innerHTML = rows.map(l => {
     const s = l.priority_score||0;
     const sc = s>=35?'h':s>=20?'m':'l';
@@ -1053,6 +1053,7 @@ function renderAllTable() {
       <td style="font-size:11px;color:var(--text3)">${l.contact_department||'—'}</td>
       <td>${liBtn}</td>
       <td class="email-td">${l.first_contact_email||'—'}</td>
+      <td style="font-size:11px;white-space:nowrap">${l.first_contact_phone ? `<a href="tel:${l.first_contact_phone}" style="color:var(--cyan);text-decoration:none">${l.first_contact_phone}</a>` : '<span style="color:var(--text3)">—</span>'}</td>
       <td>${sources}</td>
       <td>${asgn}</td>
     </tr>`;
