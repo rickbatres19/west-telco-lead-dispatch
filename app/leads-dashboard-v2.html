@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>West Telco · Lead Dispatch</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f; --bg2: #11111a; --bg3: #181824; --bg4: #1e1e2e;
+      --border: rgba(255,255,255,0.07); --border-h: rgba(255,255,255,0.15);
+      --accent: #7c6cfc; --accent2: #5bf0c0; --accent3: #fc6c6c;
+      --text: #e8e8f0; --text2: #8888a8; --text3: #45455a;
+      --warn: #fcb86c; --success: #5bf0c0; --danger: #fc6c6c;
+      --font: 'Syne', sans-serif; --mono: 'DM Mono', monospace;
+    }
+    body { background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 13px; min-height: 100vh; display: flex; }
+
+    /* SIDEBAR */
+    .sidebar { width: 220px; min-height: 100vh; background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 28px 0; position: fixed; top: 0; left: 0; z-index: 100; }
+    .logo { padding: 0 24px 24px; border-bottom: 1px solid var(--border); }
+    .logo-tag { font-size: 9px; color: var(--accent); letter-spacing: .2em; text-transform: uppercase; margin-bottom: 4px; }
+    .logo-name { font-family: var(--font); font-size: 18px; font-weight: 800; letter-spacing: -.02em; }
+    .logo-sub { font-size: 10px; color: var(--text3); margin-top: 2px; }
+    .nav { padding: 16px 0; flex: 1; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 24px; color: var(--text2); cursor: pointer; transition: all .15s; font-size: 12px; border-left: 2px solid transparent; }
+    .nav-item:hover { color: var(--text); background: rgba(255,255,255,.02); }
+    .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(124,108,252,.06); }
+    .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .6; flex-shrink: 0; }
+    .sidebar-stats { padding: 16px 24px; border-top: 1px solid var(--border); }
+    .stat-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .stat-label { color: var(--text3); font-size: 10px; }
+    .stat-val { font-size: 10px; font-weight: 500; }
+    .stat-val.green { color: var(--accent2); }
+    .stat-val.purple { color: var(--accent); }
+    .stat-val.orange { color: var(--warn); }
+
+    /* MAIN */
+    .main { margin-left: 220px; flex: 1; display: flex; flex-direction: column; }
+    .topbar { height: 52px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 28px; background: var(--bg); position: sticky; top: 0; z-index: 50; }
+    .topbar-title { font-family: var(--font); font-size: 14px; font-weight: 700; }
+    .content { padding: 24px 28px; flex: 1; }
+
+    /* CARDS ROW */
+    .cards-row { display: flex; gap: 12px; margin-bottom: 24px; }
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; flex: 1; }
+    .card-label { font-size: 10px; color: var(--text3); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; }
+    .card-val { font-family: var(--font); font-size: 24px; font-weight: 800; letter-spacing: -.02em; }
+    .card-val.green { color: var(--accent2); }
+    .card-val.purple { color: var(--accent); }
+    .card-val.orange { color: var(--warn); }
+    .card-val.red { color: var(--danger); }
+
+    /* FILTERS */
+    .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    select, input[type="text"], input[type="email"], input[type="date"] {
+      background: var(--bg2); border: 1px solid var(--border); color: var(--text);
+      font-family: var(--mono); font-size: 12px; padding: 7px 12px;
+      border-radius: 6px; outline: none; transition: border .15s;
+    }
+    select:focus, input:focus { border-color: var(--accent); }
+    select option { background: var(--bg2); }
+    .badge-count { background: rgba(124,108,252,.15); border: 1px solid rgba(124,108,252,.3); color: var(--accent); padding: 5px 14px; border-radius: 20px; font-size: 11px; margin-left: auto; white-space: nowrap; }
+
+    /* TABLE */
+    .table-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--bg3); }
+    th { text-align: left; padding: 10px 14px; font-size: 10px; color: var(--text3); letter-spacing: .1em; text-transform: uppercase; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tr.row { border-bottom: 1px solid var(--border); transition: background .1s; cursor: pointer; }
+    tr.row:last-child { border-bottom: none; }
+    tr.row:hover { background: rgba(255,255,255,.02); }
+    tr.row.selected { background: rgba(124,108,252,.06); }
+    tr.row.assigned-row { opacity: .45; cursor: not-allowed; }
+    td { padding: 10px 14px; font-size: 12px; color: var(--text2); vertical-align: middle; }
+    td.name-cell { color: var(--text); font-weight: 500; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    td.email-cell { font-size: 11px; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    td.rationale-cell { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; color: var(--text3); }
+
+    .score { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 20px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+    .score.h { background: rgba(91,240,192,.12); color: var(--success); }
+    .score.m { background: rgba(252,184,108,.12); color: var(--warn); }
+    .score.l { background: rgba(255,255,255,.05); color: var(--text3); }
+
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 500; white-space: nowrap; }
+    .tag.zoom    { background: rgba(77,160,255,.12); color: #4da0ff; }
+    .tag.xcally  { background: rgba(252,108,108,.12); color: #fc9c6c; }
+    .tag.edb     { background: rgba(124,108,252,.12); color: var(--accent); }
+    .tag.dropbox { background: rgba(91,240,192,.12); color: var(--accent2); }
+
+    .assigned-badge { display: inline-flex; align-items: center; gap: 5px; background: rgba(252,184,108,.1); border: 1px solid rgba(252,184,108,.2); color: var(--warn); padding: 2px 8px; border-radius: 4px; font-size: 10px; white-space: nowrap; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+
+    /* BUTTONS */
+    .btn { font-family: var(--mono); font-size: 12px; font-weight: 500; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; transition: all .15s; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #9080ff; }
+    .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--border-h); color: var(--text); }
+    .btn-success { background: rgba(91,240,192,.15); color: var(--accent2); border: 1px solid rgba(91,240,192,.2); }
+    .btn-success:hover { background: rgba(91,240,192,.25); }
+    .btn-success:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-danger { background: rgba(252,108,108,.12); color: var(--danger); border: 1px solid rgba(252,108,108,.2); }
+
+    /* REPORT PANEL */
+    .report-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+    .panel-title { font-family: var(--font); font-size: 13px; font-weight: 700; margin-bottom: 14px; }
+    .form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-label { font-size: 10px; color: var(--text3); letter-spacing: .1em; text-transform: uppercase; }
+
+    /* PAGINATION */
+    .pagination { display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-top: 1px solid var(--border); justify-content: space-between; }
+    .page-info { font-size: 11px; color: var(--text3); }
+    .page-btns { display: flex; gap: 4px; }
+    .page-btn { width: 28px; height: 28px; background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; color: var(--text2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 11px; transition: all .1s; font-family: var(--mono); }
+    .page-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .page-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .page-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+    /* ACTION BAR */
+    .action-bar { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; align-items: center; }
+
+    /* SELECT ALL */
+    .sel-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 11px; color: var(--text3); }
+    .sel-row a { color: var(--accent); cursor: pointer; text-decoration: underline; }
+
+    /* LOADING / EMPTY */
+    .loading { display: flex; align-items: center; justify-content: center; padding: 48px; color: var(--text3); gap: 10px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+    .empty { text-align: center; padding: 48px; color: var(--text3); }
+
+    /* TOAST */
+    .toast-wrap { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 1000; }
+    .toast { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; font-size: 12px; max-width: 320px; animation: slideIn .2s ease; }
+    @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .toast.s { border-left: 3px solid var(--success); color: var(--success); }
+    .toast.e { border-left: 3px solid var(--danger); color: var(--danger); }
+    .toast.i { border-left: 3px solid var(--accent); color: var(--accent); }
+
+    /* HISTORY TABLE */
+    .history-section { margin-top: 8px; }
+    .expand-btn { background: none; border: none; color: var(--accent); cursor: pointer; font-family: var(--mono); font-size: 11px; padding: 2px 6px; }
+    .sub-table { background: var(--bg3); }
+    .sub-table td { font-size: 11px; padding: 8px 14px; color: var(--text3); }
+
+    /* MODAL */
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 200; display: flex; align-items: center; justify-content: center; }
+    .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 28px; width: 480px; max-width: 90vw; }
+    .modal-title { font-family: var(--font); font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .modal-sub { font-size: 11px; color: var(--text3); margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+    input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--accent); cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-tag">Internal Tool</div>
+    <div class="logo-name">Lead Dispatch</div>
+    <div class="logo-sub">West Telco · Partner Enablement</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active" onclick="showView('all')">
+      <span class="nav-dot"></span> Todos los leads
+    </div>
+    <div class="nav-item" onclick="showView('report')">
+      <span class="nav-dot"></span> Generar reporte
+    </div>
+    <div class="nav-item" onclick="showView('history')">
+      <span class="nav-dot"></span> Histórico
+    </div>
+  </nav>
+  <div class="sidebar-stats">
+    <div class="stat-row"><span class="stat-label">Listos (ready)</span><span class="stat-val green" id="s-ready">—</span></div>
+    <div class="stat-row"><span class="stat-label">Pendientes</span><span class="stat-val orange" id="s-pending">—</span></div>
+    <div class="stat-row"><span class="stat-label">Asignados</span><span class="stat-val purple" id="s-assigned">—</span></div>
+    <div class="stat-row"><span class="stat-label">Disponibles</span><span class="stat-val green" id="s-available">—</span></div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <span class="topbar-title" id="view-title">Todos los leads</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span id="topbar-sub" style="font-size:11px;color:var(--text3)"></span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ===== VISTA 1: TODOS LOS LEADS ===== -->
+    <div id="view-all">
+      <div class="cards-row" id="all-cards">
+        <div class="card"><div class="card-label">Total listos</div><div class="card-val green" id="c-ready">—</div></div>
+        <div class="card"><div class="card-label">Asignados</div><div class="card-val purple" id="c-assigned">—</div></div>
+        <div class="card"><div class="card-label">Disponibles</div><div class="card-val green" id="c-available">—</div></div>
+        <div class="card"><div class="card-label">Pendientes</div><div class="card-val orange" id="c-pending">—</div></div>
+      </div>
+
+      <div class="filters">
+        <select id="af-product" onchange="filterAll()"><option value="">Todos los productos</option><option>Zoom</option><option>Xcally</option><option>EDB</option><option>Dropbox</option></select>
+        <select id="af-territory" onchange="filterAll()"><option value="">Todos los territorios</option><option value="Mexico">México</option><option value="Brasil">Brasil</option><option value="Cono Sur">Cono Sur</option><option value="Zona Andina">Zona Andina</option></select>
+        <select id="af-assigned" onchange="filterAll()">
+          <option value="">Todos</option>
+          <option value="yes">Asignados</option>
+          <option value="no">Disponibles</option>
+        </select>
+        <input type="text" id="af-search" placeholder="Buscar empresa..." oninput="filterAll()" style="width:180px"/>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Empresa</th><th>País</th><th>Producto</th><th>Score</th>
+            <th>Email contacto</th><th>Asignado a</th><th>Fecha asignación</th>
+          </tr></thead>
+          <tbody id="all-tbody"><tr><td colspan="7"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr></tbody>
+        </table>
+        <div class="pagination" id="all-pag" style="display:none">
+          <span class="page-info" id="all-pinfo"></span>
+          <div class="page-btns" id="all-pbtns"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VISTA 2: GENERAR REPORTE ===== -->
+    <div id="view-report" style="display:none">
+      <div class="report-panel">
+        <div class="panel-title">// Configurar reporte</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Nombre del partner</label><input type="text" id="rp-name" placeholder="ej. Integra Tech S.A." style="width:190px"/></div>
+          <div class="form-group"><label class="form-label">Email del partner</label><input type="email" id="rp-email" placeholder="ventas@partner.com" style="width:220px"/></div>
+          <div class="form-group"><label class="form-label">Periodo</label><input type="text" id="rp-period" placeholder="ej. Abril 2025" style="width:130px"/></div>
+          <div class="form-group"><label class="form-label">Notas internas</label><input type="text" id="rp-notes" placeholder="Opcional" style="width:180px"/></div>
+        </div>
+      </div>
+
+      <div class="filters">
+        <select id="rf-product" onchange="filterReport()"><option value="">Todos los productos</option><option>Zoom</option><option>Xcally</option><option>EDB</option><option>Dropbox</option></select>
+        <select id="rf-territory" onchange="filterReport()"><option value="">Todos los territorios</option><option value="Mexico">México</option><option value="Brasil">Brasil</option><option value="Cono Sur">Cono Sur</option><option value="Zona Andina">Zona Andina</option></select>
+        <select id="rf-score" onchange="filterReport()"><option value="">Cualquier score</option><option value="high">Alto (≥35)</option><option value="mid">Medio (20–34)</option><option value="low">Bajo (&lt;20)</option></select>
+        <input type="text" id="rf-search" placeholder="Buscar empresa..." oninput="filterReport()" style="width:180px"/>
+        <span class="badge-count" id="r-badge">0 seleccionados</span>
+      </div>
+
+      <div class="sel-row">
+        <a onclick="selectAllReport()">Seleccionar todos en vista</a> · <a onclick="clearReportSel()">Limpiar selección</a>
+        <span style="margin-left:8px;color:var(--warn);font-size:10px">⚠ Los leads ya asignados no son seleccionables</span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:36px"><input type="checkbox" id="r-check-all" onchange="toggleAllReport(this.checked)"/></th>
+            <th>Empresa</th><th>País</th><th>Producto</th><th>Score</th><th>Contacto</th><th>Email</th><th>Rationale</th>
+          </tr></thead>
+          <tbody id="report-tbody"><tr><td colspan="8"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr></tbody>
+        </table>
+        <div class="pagination" id="r-pag" style="display:none">
+          <span class="page-info" id="r-pinfo"></span>
+          <div class="page-btns" id="r-pbtns"></div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn btn-ghost" onclick="clearReportSel()">Limpiar</button>
+        <button class="btn btn-success" id="btn-export" onclick="exportExcel()" disabled>↓ Exportar Excel</button>
+        <button class="btn btn-primary" id="btn-generate" onclick="openConfirm()" disabled>→ Generar y asignar</button>
+      </div>
+    </div>
+
+    <!-- ===== VISTA 3: HISTÓRICO ===== -->
+    <div id="view-history" style="display:none">
+      <div class="table-wrap history-section">
+        <table>
+          <thead><tr>
+            <th></th><th>Partner</th><th>Email</th><th>Periodo</th>
+            <th>Leads</th><th>Estado</th><th>Generado</th><th>Notas</th>
+          </tr></thead>
+          <tbody id="hist-tbody"><tr><td colspan="8"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-bg" id="modal" style="display:none">
+  <div class="modal">
+    <div class="modal-title">Confirmar asignación</div>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div style="background:var(--bg3);border-radius:8px;padding:14px;font-size:12px;line-height:1.8">
+      <div>Partner: <strong id="m-partner">—</strong></div>
+      <div>Email: <strong id="m-email">—</strong></div>
+      <div>Periodo: <strong id="m-period">—</strong></div>
+      <div>Leads a asignar: <strong id="m-count" style="color:var(--accent2)">—</strong></div>
+    </div>
+    <p style="font-size:11px;color:var(--warn);margin-top:12px">⚠ Una vez asignados, estos leads quedarán bloqueados para otros reportes.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="generateReport()">Confirmar y generar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+const SB_URL = 'https://mjrsvivaowhnkfumsahc.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qcnN2aXZhb3dobmtmdW1zYWhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxNTM4OTIsImV4cCI6MjA1NzcyOTg5Mn0.f2spFCkNPF_hLv-1JsI9oVFpJjBvpfpEFT5tPONaGaE';
+const sb = supabase.createClient(SB_URL, SB_KEY);
+
+// STATE
+let allLeads = [], filteredAll = [], allPage = 1;
+let reportLeads = [], filteredReport = [], reportPage = 1;
+let reportSelected = new Set();
+const PAGE = 50;
+
+// ========== INIT ==========
+async function init() {
+  await loadStats();
+  await loadAllLeads();
+}
+
+async function loadStats() {
+  const { data } = await sb.from('builtwith_company_targets')
+    .select('enrichment_status, assigned_to_partner')
+    .in('enrichment_status', ['ready', 'pending', 'partial']);
+  if (!data) return;
+  const ready = data.filter(r => r.enrichment_status === 'ready').length;
+  const pending = data.filter(r => r.enrichment_status === 'pending').length;
+  const assigned = data.filter(r => r.assigned_to_partner).length;
+  const available = ready - assigned;
+  ['s-ready','c-ready'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = ready.toLocaleString(); });
+  ['s-pending','c-pending'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = pending.toLocaleString(); });
+  ['s-assigned','c-assigned'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = assigned.toLocaleString(); });
+  ['s-available','c-available'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = available.toLocaleString(); });
+}
+
+// ========== VIEW SWITCHING ==========
+function showView(v) {
+  ['all','report','history'].forEach(n => {
+    document.getElementById('view-'+n).style.display = n===v ? 'block' : 'none';
+    document.querySelectorAll('.nav-item')[['all','report','history'].indexOf(n)].classList.toggle('active', n===v);
+  });
+  const titles = { all: 'Todos los leads', report: 'Generar reporte', history: 'Histórico de reportes' };
+  document.getElementById('view-title').textContent = titles[v];
+  if (v === 'report' && reportLeads.length === 0) loadReportLeads();
+  if (v === 'history') loadHistory();
+}
+
+// ========== VIEW 1: ALL LEADS ==========
+async function loadAllLeads() {
+  const { data } = await sb.from('builtwith_company_targets')
+    .select('id, company_name, country, territory, west_telco_product, priority_score, first_contact_email, assigned_to_partner, assigned_at, enrichment_status')
+    .eq('enrichment_status', 'ready')
+    .order('priority_score', { ascending: false })
+    .limit(3000);
+  allLeads = data || [];
+  filteredAll = [...allLeads];
+  allPage = 1;
+  document.getElementById('topbar-sub').textContent = allLeads.length.toLocaleString() + ' leads listos';
+  renderAllTable();
+}
+
+function filterAll() {
+  const prod = document.getElementById('af-product').value;
+  const terr = document.getElementById('af-territory').value;
+  const asgn = document.getElementById('af-assigned').value;
+  const srch = document.getElementById('af-search').value.toLowerCase();
+  filteredAll = allLeads.filter(l => {
+    if (prod && l.west_telco_product !== prod) return false;
+    if (terr && l.territory !== terr) return false;
+    if (asgn === 'yes' && !l.assigned_to_partner) return false;
+    if (asgn === 'no' && l.assigned_to_partner) return false;
+    if (srch && !(l.company_name||'').toLowerCase().includes(srch)) return false;
+    return true;
+  });
+  allPage = 1;
+  renderAllTable();
+}
+
+function renderAllTable() {
+  const start = (allPage-1)*PAGE;
+  const rows = filteredAll.slice(start, start+PAGE);
+  const tbody = document.getElementById('all-tbody');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty">Sin resultados</div></td></tr>'; document.getElementById('all-pag').style.display='none'; return; }
+  tbody.innerHTML = rows.map(l => {
+    const s = l.priority_score||0;
+    const sc = s>=35?'h':s>=20?'m':'l';
+    const prod = (l.west_telco_product||'').toLowerCase();
+    const tc = prod.includes('zoom')?'zoom':prod.includes('xcally')?'xcally':prod.includes('edb')?'edb':'dropbox';
+    const asgn = l.assigned_to_partner ? `<span class="assigned-badge">⬡ ${l.assigned_to_partner}</span>` : '<span style="color:var(--text3);font-size:11px">—</span>';
+    const date = l.assigned_at ? new Date(l.assigned_at).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    return `<tr class="row ${l.assigned_to_partner?'assigned-row':''}">
+      <td class="name-cell">${l.company_name||'—'}</td>
+      <td>${l.country||'—'}</td>
+      <td><span class="tag ${tc}">${l.west_telco_product||'—'}</span></td>
+      <td><span class="score ${sc}">${s}</span></td>
+      <td class="email-cell">${l.first_contact_email||'—'}</td>
+      <td>${asgn}</td>
+      <td style="font-size:11px;color:var(--text3)">${date}</td>
+    </tr>`;
+  }).join('');
+  renderPag('all', filteredAll.length, allPage, p => { allPage=p; renderAllTable(); });
+}
+
+// ========== VIEW 2: REPORT ==========
+async function loadReportLeads() {
+  document.getElementById('report-tbody').innerHTML = '<tr><td colspan="8"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr>';
+  const { data } = await sb.from('builtwith_company_targets')
+    .select('id, company_name, country, territory, west_telco_product, priority_score, first_contact_name, first_contact_email, offering_rationale, assigned_to_partner, has_contact_email')
+    .eq('enrichment_status', 'ready')
+    .order('priority_score', { ascending: false })
+    .limit(3000);
+  reportLeads = data || [];
+  filteredReport = [...reportLeads];
+  reportPage = 1;
+  renderReportTable();
+}
+
+function filterReport() {
+  const prod = document.getElementById('rf-product').value;
+  const terr = document.getElementById('rf-territory').value;
+  const score = document.getElementById('rf-score').value;
+  const srch = document.getElementById('rf-search').value.toLowerCase();
+  filteredReport = reportLeads.filter(l => {
+    if (prod && l.west_telco_product !== prod) return false;
+    if (terr && l.territory !== terr) return false;
+    if (score==='high' && l.priority_score < 35) return false;
+    if (score==='mid' && (l.priority_score<20||l.priority_score>=35)) return false;
+    if (score==='low' && l.priority_score >= 20) return false;
+    if (srch && !(l.company_name||'').toLowerCase().includes(srch)) return false;
+    return true;
+  });
+  reportPage = 1;
+  renderReportTable();
+}
+
+function renderReportTable() {
+  const start = (reportPage-1)*PAGE;
+  const rows = filteredReport.slice(start, start+PAGE);
+  const tbody = document.getElementById('report-tbody');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8"><div class="empty">Sin leads disponibles</div></td></tr>'; document.getElementById('r-pag').style.display='none'; return; }
+  tbody.innerHTML = rows.map(l => {
+    const s = l.priority_score||0;
+    const sc = s>=35?'h':s>=20?'m':'l';
+    const prod = (l.west_telco_product||'').toLowerCase();
+    const tc = prod.includes('zoom')?'zoom':prod.includes('xcally')?'xcally':prod.includes('edb')?'edb':'dropbox';
+    const isAssigned = !!l.assigned_to_partner;
+    const checked = reportSelected.has(l.id) ? 'checked' : '';
+    const rat = (l.offering_rationale||'—').substring(0,70);
+    if (isAssigned) {
+      return `<tr class="row assigned-row" title="Ya asignado a: ${l.assigned_to_partner}">
+        <td style="text-align:center"><input type="checkbox" disabled/></td>
+        <td class="name-cell" style="opacity:.5">${l.company_name||'—'}</td>
+        <td style="opacity:.5">${l.country||'—'}</td>
+        <td><span class="tag ${tc}" style="opacity:.4">${l.west_telco_product||'—'}</span></td>
+        <td><span class="score ${sc}" style="opacity:.4">${s}</span></td>
+        <td colspan="3"><span class="assigned-badge">⬡ ${l.assigned_to_partner}</span></td>
+      </tr>`;
+    }
+    return `<tr class="row ${reportSelected.has(l.id)?'selected':''}" onclick="toggleReportLead(${l.id}, event)">
+      <td style="text-align:center"><input type="checkbox" ${checked} onclick="toggleReportLead(${l.id}, event)"/></td>
+      <td class="name-cell">${l.company_name||'—'}</td>
+      <td>${l.country||'—'}</td>
+      <td><span class="tag ${tc}">${l.west_telco_product||'—'}</span></td>
+      <td><span class="score ${sc}">${s}</span></td>
+      <td style="font-size:11px">${l.first_contact_name||'—'}</td>
+      <td class="email-cell">${l.first_contact_email||'—'}</td>
+      <td class="rationale-cell" title="${l.offering_rationale||''}">${rat}</td>
+    </tr>`;
+  }).join('');
+  updateReportUI();
+  renderPag('r', filteredReport.filter(l=>!l.assigned_to_partner).length, reportPage, p => { reportPage=p; renderReportTable(); });
+}
+
+function toggleReportLead(id, e) {
+  const lead = reportLeads.find(l => l.id === id);
+  if (!lead || lead.assigned_to_partner) return;
+  if (e.target.tagName === 'INPUT') {
+    if (e.target.checked) reportSelected.add(id); else reportSelected.delete(id);
+  } else {
+    if (reportSelected.has(id)) reportSelected.delete(id); else reportSelected.add(id);
+  }
+  renderReportTable();
+}
+
+function toggleAllReport(checked) {
+  const start = (reportPage-1)*PAGE;
+  filteredReport.slice(start, start+PAGE).filter(l => !l.assigned_to_partner).forEach(l => checked ? reportSelected.add(l.id) : reportSelected.delete(l.id));
+  renderReportTable();
+}
+
+function selectAllReport() {
+  filteredReport.filter(l => !l.assigned_to_partner).forEach(l => reportSelected.add(l.id));
+  renderReportTable();
+}
+
+function clearReportSel() { reportSelected.clear(); renderReportTable(); }
+
+function updateReportUI() {
+  const n = reportSelected.size;
+  document.getElementById('r-badge').textContent = `${n} seleccionados`;
+  document.getElementById('btn-generate').disabled = n === 0;
+  document.getElementById('btn-export').disabled = n === 0;
+}
+
+// ========== CONFIRM MODAL ==========
+function openConfirm() {
+  const name = document.getElementById('rp-name').value.trim();
+  const email = document.getElementById('rp-email').value.trim();
+  const period = document.getElementById('rp-period').value.trim();
+  if (!name || !email || !period) { toast('Completa nombre, email y periodo del partner', 'e'); return; }
+  document.getElementById('m-partner').textContent = name;
+  document.getElementById('m-email').textContent = email;
+  document.getElementById('m-period').textContent = period;
+  document.getElementById('m-count').textContent = reportSelected.size;
+  document.getElementById('modal-sub').textContent = `Se asignarán ${reportSelected.size} leads a este partner y quedarán bloqueados.`;
+  document.getElementById('modal').style.display = 'flex';
+}
+function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+// ========== GENERATE REPORT ==========
+async function generateReport() {
+  closeModal();
+  const name   = document.getElementById('rp-name').value.trim();
+  const email  = document.getElementById('rp-email').value.trim();
+  const period = document.getElementById('rp-period').value.trim();
+  const notes  = document.getElementById('rp-notes').value.trim();
+  const leads  = reportLeads.filter(l => reportSelected.has(l.id));
+
+  document.getElementById('btn-generate').disabled = true;
+  document.getElementById('btn-generate').textContent = '⟳ Guardando...';
+
+  // 1. Create report record
+  const { data: report, error: re } = await sb.from('partner_reports').insert({
+    partner_name: name, partner_email: email, period_label: period,
+    notes: notes||null, status: 'ready', total_leads: leads.length,
+    created_by: 'west_telco_internal', generated_at: new Date().toISOString()
+  }).select().single();
+
+  if (re) { toast('Error creando reporte: '+re.message, 'e'); resetGenBtn(); return; }
+
+  // 2. Insert report leads
+  const { error: le } = await sb.from('partner_report_leads').insert(
+    leads.map(l => ({
+      report_id: report.id, target_id: l.id,
+      company_name: l.company_name, country: l.country, territory: l.territory,
+      product: l.west_telco_product, priority_score: l.priority_score,
+      contact_name: l.first_contact_name, contact_email: l.first_contact_email,
+      offering_rationale: l.offering_rationale
+    }))
+  );
+  if (le) { toast('Error guardando leads: '+le.message, 'e'); resetGenBtn(); return; }
+
+  // 3. Mark leads as assigned
+  const ids = leads.map(l => l.id);
+  const { error: ue } = await sb.from('builtwith_company_targets').update({
+    assigned_to_partner: name,
+    assigned_at: new Date().toISOString(),
+    assigned_report_id: report.id
+  }).in('id', ids);
+  if (ue) { toast('Error marcando asignación: '+ue.message, 'e'); resetGenBtn(); return; }
+
+  toast(`✓ ${leads.length} leads asignados a ${name}`, 's');
+  exportExcel(leads, name, period);
+  reportSelected.clear();
+  await Promise.all([loadStats(), loadReportLeads(), loadAllLeads()]);
+  resetGenBtn();
+  document.getElementById('rp-name').value = '';
+  document.getElementById('rp-email').value = '';
+  document.getElementById('rp-period').value = '';
+  document.getElementById('rp-notes').value = '';
+}
+
+function resetGenBtn() {
+  document.getElementById('btn-generate').disabled = false;
+  document.getElementById('btn-generate').textContent = '→ Generar y asignar';
+}
+
+// ========== EXPORT EXCEL ==========
+function exportExcel(leads, partnerName, period) {
+  const data = (leads || reportLeads.filter(l => reportSelected.has(l.id)));
+  if (!data.length) return;
+  const pName = partnerName || document.getElementById('rp-name').value || 'partner';
+  const pPeriod = period || document.getElementById('rp-period').value || 'reporte';
+  const rows = data.map(l => ({
+    'Empresa': l.company_name||'',
+    'País': l.country||'',
+    'Territorio': l.territory||'',
+    'Producto recomendado': l.west_telco_product||'',
+    'Score de prioridad': l.priority_score||0,
+    'Nombre del contacto': l.first_contact_name||'',
+    'Email del contacto': l.first_contact_email||'',
+    'Por qué es un buen lead': l.offering_rationale||''
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [22,12,14,22,12,24,30,42].map(w => ({ wch: w }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Leads');
+  XLSX.writeFile(wb, `WestTelco_${pName}_${pPeriod}.xlsx`.replace(/\s+/g,'_'));
+}
+
+// ========== VIEW 3: HISTORY ==========
+async function loadHistory() {
+  const { data } = await sb.from('partner_reports').select('*').order('created_at', { ascending: false }).limit(100);
+  const tbody = document.getElementById('hist-tbody');
+  if (!data?.length) { tbody.innerHTML = '<tr><td colspan="8"><div class="empty">Sin reportes aún</div></td></tr>'; return; }
+  tbody.innerHTML = data.map(r => {
+    const date = new Date(r.created_at).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+    const sc = r.status==='ready'?'var(--success)':r.status==='sent'?'var(--accent)':'var(--text3)';
+    return `<tr class="row">
+      <td style="text-align:center">
+        <button class="expand-btn" onclick="toggleLeads('${r.id}', this)">▶</button>
+      </td>
+      <td style="color:var(--text);font-weight:500">${r.partner_name}</td>
+      <td class="email-cell">${r.partner_email}</td>
+      <td>${r.period_label}</td>
+      <td><span class="score h">${r.total_leads}</span></td>
+      <td style="color:${sc};font-size:11px">${r.status}</td>
+      <td style="font-size:11px;color:var(--text3)">${date}</td>
+      <td style="font-size:11px;color:var(--text3)">${r.notes||'—'}</td>
+    </tr>
+    <tr id="sub-${r.id}" style="display:none"><td colspan="8" style="padding:0">
+      <div id="sub-content-${r.id}" style="padding:8px 14px;background:var(--bg3)"><div class="loading"><div class="spinner"></div></div></div>
+    </td></tr>`;
+  }).join('');
+}
+
+async function toggleLeads(reportId, btn) {
+  const row = document.getElementById('sub-'+reportId);
+  const content = document.getElementById('sub-content-'+reportId);
+  if (row.style.display === 'none') {
+    row.style.display = 'table-row';
+    btn.textContent = '▼';
+    const { data } = await sb.from('partner_report_leads').select('*').eq('report_id', reportId).limit(200);
+    if (!data?.length) { content.innerHTML = '<p style="color:var(--text3);font-size:11px;padding:8px">Sin leads registrados</p>'; return; }
+    content.innerHTML = `<table style="width:100%">
+      <thead><tr style="background:var(--bg4)">
+        <th style="padding:8px 12px;font-size:10px;color:var(--text3)">Empresa</th>
+        <th style="padding:8px 12px;font-size:10px;color:var(--text3)">País</th>
+        <th style="padding:8px 12px;font-size:10px;color:var(--text3)">Producto</th>
+        <th style="padding:8px 12px;font-size:10px;color:var(--text3)">Score</th>
+        <th style="padding:8px 12px;font-size:10px;color:var(--text3)">Email</th>
+      </tr></thead>
+      <tbody>${data.map(l => `<tr style="border-top:1px solid var(--border)">
+        <td class="sub-table" style="padding:8px 12px;font-size:11px;color:var(--text)">${l.company_name||'—'}</td>
+        <td class="sub-table" style="padding:8px 12px;font-size:11px">${l.country||'—'}</td>
+        <td class="sub-table" style="padding:8px 12px;font-size:11px">${l.product||'—'}</td>
+        <td class="sub-table" style="padding:8px 12px;font-size:11px">${l.priority_score||0}</td>
+        <td class="sub-table" style="padding:8px 12px;font-size:11px">${l.contact_email||'—'}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  } else {
+    row.style.display = 'none';
+    btn.textContent = '▶';
+  }
+}
+
+// ========== PAGINATION ==========
+function renderPag(prefix, total, current, cb) {
+  const pages = Math.ceil(total/PAGE);
+  const pag = document.getElementById(prefix+'-pag');
+  const info = document.getElementById(prefix+'-pinfo');
+  const btns = document.getElementById(prefix+'-pbtns');
+  if (!pag) return;
+  if (pages <= 1) { pag.style.display='none'; return; }
+  pag.style.display='flex';
+  const start = (current-1)*PAGE+1, end = Math.min(current*PAGE, total);
+  info.textContent = `Mostrando ${start}–${end} de ${total.toLocaleString()}`;
+  let html = `<button class="page-btn" ${current===1?'disabled':''} onclick="(${cb.toString()})(${current-1})">‹</button>`;
+  for (let i=Math.max(1,current-2); i<=Math.min(pages,current+2); i++) {
+    html += `<button class="page-btn ${i===current?'active':''}" onclick="(${cb.toString()})(${i})">${i}</button>`;
+  }
+  html += `<button class="page-btn" ${current===pages?'disabled':''} onclick="(${cb.toString()})(${current+1})">›</button>`;
+  btns.innerHTML = html;
+}
+
+// ========== TOAST ==========
+function toast(msg, type='i') {
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 4500);
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,286 @@
+{
+  "name": "WestTelco · Enrichment Pipeline (Hunter.io)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 2 * * *"
+            }
+          ]
+        }
+      },
+      "id": "node-trigger",
+      "name": "🕐 Schedule (2am diario)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 60]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, canonical_domain, company_name, country, territory, west_telco_product, priority_score FROM builtwith_company_targets WHERE enrichment_status = 'pending' AND canonical_domain IS NOT NULL ORDER BY priority_score DESC LIMIT 100",
+        "options": {}
+      },
+      "id": "node-fetch-pending",
+      "name": "📋 Supabase · Fetch pending batch",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [460, 60],
+      "credentials": {
+        "postgres": {
+          "name": "Supabase WestTelco"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "node-loop",
+      "name": "🔁 Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [680, 60]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.hunter.io/v2/domain-search?domain={{ $json.canonical_domain }}&limit=5&api_key={{ $credentials.hunterApiKey }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node-hunter",
+      "name": "🔍 Hunter.io · Domain Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 60],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Hunter.io API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-emails",
+              "leftValue": "={{ $json.data.emails.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-check-contact",
+      "name": "❓ ¿Encontró contacto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 60]
+    },
+    {
+      "parameters": {
+        "jsCode": "const hunterData = $('🔍 Hunter.io · Domain Search').item.json;\nconst leadData = $('🔁 Loop Over Items').item.json;\n\nconst emails = hunterData.data?.emails || [];\n\n// Preferir contactos con roles IT/TI/Tech/Sistemas/Director/Gerente\nconst itKeywords = ['it', 'ti', 'tech', 'system', 'infra', 'director', 'gerente', 'manager', 'cto', 'cio', 'chief', 'head'];\n\nconst ranked = emails\n  .filter(e => e.value && e.confidence >= 50)\n  .map(e => {\n    const fullText = ((e.first_name || '') + ' ' + (e.last_name || '') + ' ' + (e.position || '')).toLowerCase();\n    const itScore = itKeywords.filter(k => fullText.includes(k)).length;\n    return { ...e, itScore };\n  })\n  .sort((a, b) => b.itScore - a.itScore || b.confidence - a.confidence);\n\nconst best = ranked[0];\n\nreturn [{\n  json: {\n    target_id: leadData.id,\n    canonical_domain: leadData.canonical_domain,\n    company_name: leadData.company_name,\n    country: leadData.country,\n    west_telco_product: leadData.west_telco_product,\n    priority_score: leadData.priority_score,\n    // Contacto encontrado\n    first_contact_name: best ? `${best.first_name || ''} ${best.last_name || ''}`.trim() : null,\n    first_contact_email: best?.value || null,\n    contact_role: best?.position || null,\n    email_confidence: best?.confidence || null,\n    has_contact_email: true,\n    has_contact_name: !!(best?.first_name),\n    enrichment_status: 'ready',\n    verification_status: 'verified',\n    verification_score: best?.confidence || null,\n    verification_source: 'hunter',\n    verified_at: new Date().toISOString(),\n    next_enrichment_step: null\n  }\n}];\n"
+      },
+      "id": "node-map-found",
+      "name": "✅ Mapear contacto encontrado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, -80]
+    },
+    {
+      "parameters": {
+        "jsCode": "const leadData = $('🔁 Loop Over Items').item.json;\nconst hunterData = $('🔍 Hunter.io · Domain Search').item.json;\n\nreturn [{\n  json: {\n    target_id: leadData.id,\n    canonical_domain: leadData.canonical_domain,\n    company_name: leadData.company_name,\n    west_telco_product: leadData.west_telco_product,\n    enrichment_status: 'partial',\n    verification_status: 'not_found',\n    verification_score: 0,\n    verification_source: 'hunter',\n    verification_reason: `Hunter no encontró emails para ${leadData.canonical_domain}. Emails totales: ${hunterData.data?.emails?.length || 0}`,\n    next_enrichment_step: 'manual_linkedin',\n    verified_at: new Date().toISOString()\n  }\n}];\n"
+      },
+      "id": "node-map-notfound",
+      "name": "⚠️ Mapear sin contacto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE builtwith_company_targets SET\n  enrichment_status = '{{ $json.enrichment_status }}',\n  first_contact_name = {{ $json.first_contact_name ? `'${$json.first_contact_name.replace(/'/g, \"''\")}'` : 'NULL' }},\n  first_contact_email = {{ $json.first_contact_email ? `'${$json.first_contact_email}'` : 'NULL' }},\n  has_contact_email = {{ $json.has_contact_email || false }},\n  has_contact_name = {{ $json.has_contact_name || false }},\n  verification_status = '{{ $json.verification_status }}',\n  verification_score = {{ $json.verification_score || 0 }},\n  verification_source = '{{ $json.verification_source }}',\n  verification_reason = {{ $json.verification_reason ? `'${$json.verification_reason.replace(/'/g, \"''\")}'` : 'NULL' }},\n  verified_at = NOW(),\n  next_enrichment_step = {{ $json.next_enrichment_step ? `'${$json.next_enrichment_step}'` : 'NULL' }},\n  updated_at = NOW()\nWHERE id = {{ $json.target_id }}\nRETURNING id, enrichment_status, first_contact_email",
+        "options": {}
+      },
+      "id": "node-update-supabase",
+      "name": "💾 Supabase · UPDATE target",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1560, 60],
+      "credentials": {
+        "postgres": {
+          "name": "Supabase WestTelco"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Agregar todos los items procesados\nconst items = $input.all();\n\nconst ready = items.filter(i => i.json.enrichment_status === 'ready').length;\nconst partial = items.filter(i => i.json.enrichment_status === 'partial').length;\nconst errors = items.filter(i => i.json.error).length;\n\nreturn [{\n  json: {\n    agent_name: 'enrichment_hunter',\n    trigger_type: 'schedule',\n    processed_count: items.length,\n    success_count: ready,\n    blocked_count: partial,\n    error_count: errors,\n    estimated_cost_usd: (items.length * 0.002).toFixed(4),\n    status: 'completed',\n    input_scope: { source: 'hunter', batch_size: 100 }\n  }\n}];\n"
+      },
+      "id": "node-aggregate",
+      "name": "📊 Agregar resultados del run",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 60]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO agent_runs (agent_name, trigger_type, input_scope, processed_count, success_count, error_count, blocked_count, estimated_cost_usd, status, finished_at)\nVALUES (\n  '{{ $json.agent_name }}',\n  '{{ $json.trigger_type }}',\n  '{{ JSON.stringify($json.input_scope) }}'::jsonb,\n  {{ $json.processed_count }},\n  {{ $json.success_count }},\n  {{ $json.error_count }},\n  {{ $json.blocked_count }},\n  {{ $json.estimated_cost_usd }},\n  '{{ $json.status }}',\n  NOW()\n)\nRETURNING id, processed_count, success_count",
+        "options": {}
+      },
+      "id": "node-log-run",
+      "name": "📝 Supabase · Log agent_run",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [2000, 60],
+      "credentials": {
+        "postgres": {
+          "name": "Supabase WestTelco"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "check-more",
+              "leftValue": "={{ $json.success_count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ]
+        }
+      },
+      "id": "node-check-notify",
+      "name": "❓ ¿Hay nuevos ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2220, 60]
+    },
+    {
+      "parameters": {
+        "fromEmail": "leads@westtelco.com",
+        "toEmail": "it@westtelco.com",
+        "subject": "=✅ Enriquecimiento completado · {{ $json.success_count }} nuevos leads ready",
+        "emailType": "html",
+        "message": "=<h2 style='font-family:sans-serif'>Reporte de enriquecimiento nocturno</h2>\n<table style='font-family:monospace;font-size:13px;border-collapse:collapse'>\n  <tr><td style='padding:6px 16px 6px 0;color:#666'>Procesados</td><td><strong>{{ $json.processed_count }}</strong></td></tr>\n  <tr><td style='padding:6px 16px 6px 0;color:#666'>Nuevos ready ✅</td><td style='color:#16a34a'><strong>{{ $json.success_count }}</strong></td></tr>\n  <tr><td style='padding:6px 16px 6px 0;color:#666'>Parciales ⚠️</td><td style='color:#d97706'><strong>{{ $json.blocked_count }}</strong></td></tr>\n  <tr><td style='padding:6px 16px 6px 0;color:#666'>Errores</td><td style='color:#dc2626'><strong>{{ $json.error_count }}</strong></td></tr>\n  <tr><td style='padding:6px 16px 6px 0;color:#666'>Costo estimado</td><td>$\\{{ $json.estimated_cost_usd }} USD</td></tr>\n</table>\n<p style='margin-top:16px;font-family:sans-serif;font-size:12px;color:#999'>West Telco · Lead Dispatch System</p>",
+        "options": {}
+      },
+      "id": "node-notify",
+      "name": "📧 Email · Resumen nocturno",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [2440, -80],
+      "credentials": {
+        "smtp": {
+          "name": "WestTelco SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "node-noop",
+      "name": "Sin cambios · skip",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [2440, 200]
+    }
+  ],
+  "connections": {
+    "🕐 Schedule (2am diario)": {
+      "main": [
+        [{ "node": "📋 Supabase · Fetch pending batch", "type": "main", "index": 0 }]
+      ]
+    },
+    "📋 Supabase · Fetch pending batch": {
+      "main": [
+        [{ "node": "🔁 Loop Over Items", "type": "main", "index": 0 }]
+      ]
+    },
+    "🔁 Loop Over Items": {
+      "main": [
+        [{ "node": "🔍 Hunter.io · Domain Search", "type": "main", "index": 0 }],
+        [{ "node": "📊 Agregar resultados del run", "type": "main", "index": 0 }]
+      ]
+    },
+    "🔍 Hunter.io · Domain Search": {
+      "main": [
+        [{ "node": "❓ ¿Encontró contacto?", "type": "main", "index": 0 }]
+      ]
+    },
+    "❓ ¿Encontró contacto?": {
+      "main": [
+        [{ "node": "✅ Mapear contacto encontrado", "type": "main", "index": 0 }],
+        [{ "node": "⚠️ Mapear sin contacto", "type": "main", "index": 0 }]
+      ]
+    },
+    "✅ Mapear contacto encontrado": {
+      "main": [
+        [{ "node": "💾 Supabase · UPDATE target", "type": "main", "index": 0 }]
+      ]
+    },
+    "⚠️ Mapear sin contacto": {
+      "main": [
+        [{ "node": "💾 Supabase · UPDATE target", "type": "main", "index": 0 }]
+      ]
+    },
+    "💾 Supabase · UPDATE target": {
+      "main": [
+        [{ "node": "🔁 Loop Over Items", "type": "main", "index": 0 }]
+      ]
+    },
+    "📊 Agregar resultados del run": {
+      "main": [
+        [{ "node": "📝 Supabase · Log agent_run", "type": "main", "index": 0 }]
+      ]
+    },
+    "📝 Supabase · Log agent_run": {
+      "main": [
+        [{ "node": "❓ ¿Hay nuevos ready?", "type": "main", "index": 0 }]
+      ]
+    },
+    "❓ ¿Hay nuevos ready?": {
+      "main": [
+        [{ "node": "📧 Email · Resumen nocturno", "type": "main", "index": 0 }],
+        [{ "node": "Sin cambios · skip", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "westtelco"
+  },
+  "tags": [
+    { "name": "enrichment" },
+    { "name": "hunter" },
+    { "name": "supabase" }
+  ]
+}
