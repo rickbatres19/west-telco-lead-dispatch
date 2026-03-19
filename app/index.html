@@ -960,20 +960,20 @@ async function init() {
 
 async function loadStats() {
   const { data } = await sb.from('builtwith_company_targets')
-    .select('enrichment_status, assigned_to_partner')
+    .select('enrichment_status, assigned_to_partner, first_contact_email')
     .limit(30000);
   if (!data) return;
   const total    = data.length;
-  const ready    = data.filter(r => r.enrichment_status === 'ready').length;
+  const enriched = data.filter(r => r.enrichment_status === 'ready' && r.first_contact_email).length;
   const pending  = data.filter(r => r.enrichment_status !== 'ready').length;
   const assigned = data.filter(r => r.assigned_to_partner).length;
-  const available = ready - assigned;
-  set('sm-ready',    ready.toLocaleString());
+  const available = enriched - assigned;
+  set('sm-ready',    enriched.toLocaleString());
   set('sm-pending',  pending.toLocaleString());
   set('sm-assigned', assigned.toLocaleString());
   set('sm-available',available.toLocaleString());
   set('cv-ready',    total.toLocaleString());
-  set('cv-enriched', ready.toLocaleString());
+  set('cv-enriched', enriched.toLocaleString());
   set('cv-pending',  pending.toLocaleString());
   set('cv-assigned', assigned.toLocaleString());
   set('nb-all',      total.toLocaleString());
@@ -1052,7 +1052,7 @@ async function loadAllLeadsFiltered(page = 1) {
 }
 
 function renderAllTable() {
-  const rows = filteredAll.slice((allPage-1)*PAGE, allPage*PAGE);
+  const rows = filteredAll; // data already paginated server-side
   const tbody = document.getElementById('all-tbody');
   if (!rows.length) { tbody.innerHTML = '<tr><td colspan="12"><div class="empty">Sin resultados con estos filtros</div></td></tr>'; document.getElementById('all-pag').style.display='none'; return; }
   tbody.innerHTML = rows.map(l => {
@@ -1113,6 +1113,7 @@ async function loadReportLeads(page = 1) {
   const { data, count } = await sb.from('builtwith_company_targets')
     .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,offering_rationale,assigned_to_partner', { count: 'exact' })
     .eq('enrichment_status','ready')
+    .not('first_contact_email', 'is', null)
     .order('priority_score', { ascending: false })
     .range(from, to);
   reportLeads = data || [];
@@ -1138,6 +1139,7 @@ async function loadReportLeadsFiltered(page = 1) {
   let q = sb.from('builtwith_company_targets')
     .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,offering_rationale,assigned_to_partner', { count: 'exact' })
     .eq('enrichment_status','ready')
+    .not('first_contact_email', 'is', null)
     .order('priority_score', { ascending: false });
 
   if (prod) q = q.eq('west_telco_product', prod);
