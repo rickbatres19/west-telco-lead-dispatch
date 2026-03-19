@@ -834,9 +834,10 @@
             <th>LinkedIn</th>
             <th>Email</th>
             <th>Teléfono</th>
+            <th>Por qué / Oferta</th>
             <th class="sortable" onclick="sortAll('assigned_to_partner')">Asignado a <span class="sort-icon" id="si-assigned_to_partner">⇅</span></th>
           </tr></thead>
-          <tbody id="all-tbody"><tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando leads...</div></td></tr></tbody>
+          <tbody id="all-tbody"><tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando leads...</div></td></tr></tbody>
         </table>
         <div class="pagination" id="all-pag" style="display:none">
           <span class="page-info" id="all-pinfo"></span>
@@ -912,6 +913,7 @@
             <th>LinkedIn</th>
             <th>Email</th>
             <th>Teléfono</th>
+            <th>Por qué / Oferta</th>
             <th>Fuentes</th>
             <th class="sortable" onclick="sortReport('assigned_to_partner')">Estado <span class="sort-icon" id="rsi-assigned_to_partner">⇅</span></th>
           </tr></thead>
@@ -1025,7 +1027,7 @@ async function loadAllLeads(page = 1) {
   document.getElementById('all-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
   try {
     const { data, count, error } = await sb.from('builtwith_company_targets')
-      .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,assigned_to_partner,assigned_at,enrichment_status', { count: 'estimated' })
+      .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner,assigned_at,enrichment_status', { count: 'estimated' })
       .order(allSortCol, { ascending: allSortDir === 'asc', nullsFirst: false })
       .range(from, to);
     if (error) throw error;
@@ -1057,7 +1059,7 @@ async function loadAllLeadsFiltered(page = 1) {
   document.getElementById('all-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
 
   let q = sb.from('builtwith_company_targets')
-    .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,assigned_to_partner,assigned_at,enrichment_status', { count: 'estimated' });
+    .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner,assigned_at,enrichment_status', { count: 'estimated' });
 
   if (prod)   q = q.eq('west_telco_product', prod);
   if (terr)   q = q.eq('territory', terr);
@@ -1078,7 +1080,7 @@ async function loadAllLeadsFiltered(page = 1) {
 function renderAllTable() {
   const rows = filteredAll; // data already paginated server-side
   const tbody = document.getElementById('all-tbody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="12"><div class="empty">Sin resultados con estos filtros</div></td></tr>'; document.getElementById('all-pag').style.display='none'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="13"><div class="empty">Sin resultados con estos filtros</div></td></tr>'; document.getElementById('all-pag').style.display='none'; return; }
   tbody.innerHTML = rows.map(l => {
     const s = l.priority_score||0;
     const sc = s>=35?'h':s>=20?'m':'l';
@@ -1110,6 +1112,15 @@ function renderAllTable() {
       ? `<span style="color:var(--orange);font-size:10px;font-weight:600">◑ Parcial</span>`
       : `<span style="color:var(--text3);font-size:10px">○ Pendiente</span>`;
 
+    // Por qué / Oferta context cell
+    const porQue = l.trigger_technology || l.recommended_offer || l.offering_rationale
+      ? `<div style="max-width:200px">
+          ${l.trigger_technology ? `<span style="display:inline-block;background:rgba(124,108,252,0.12);border:1px solid rgba(124,108,252,0.25);color:#a78bfa;padding:1px 7px;border-radius:3px;font-size:9px;font-weight:600;margin-bottom:3px">${l.trigger_technology}</span>` : ''}
+          ${l.recommended_offer ? `<div style="font-size:10px;color:var(--cyan);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px" title="${l.recommended_offer}">${l.recommended_offer}</div>` : ''}
+          ${l.offering_rationale ? `<div style="font-size:9px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px" title="${l.offering_rationale}">${l.offering_rationale}</div>` : ''}
+        </div>`
+      : '<span style="color:var(--text3);font-size:11px">—</span>';
+
     return `<tr class="row">
       <td class="company">${l.company_name||'—'}</td>
       <td>${l.country||'—'}</td>
@@ -1122,6 +1133,7 @@ function renderAllTable() {
       <td>${liBtn}</td>
       <td class="email-td">${l.first_contact_email||'—'}</td>
       <td style="font-size:11px;white-space:nowrap">${l.first_contact_phone ? `<a href="tel:${l.first_contact_phone}" style="color:var(--cyan);text-decoration:none">${l.first_contact_phone}</a>` : '<span style="color:var(--text3)">—</span>'}</td>
+      <td>${porQue}</td>
       <td>${asgn}</td>
     </tr>`;
   }).join('');
@@ -1134,7 +1146,7 @@ async function loadReportLeads(page = 1) {
   const from = (page-1)*PAGE, to = from+PAGE-1;
   document.getElementById('report-tbody').innerHTML = `<tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr>`;
   const { data, count } = await sb.from('builtwith_company_targets')
-    .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,offering_rationale,assigned_to_partner', { count: 'exact' })
+    .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner', { count: 'estimated' })
     .eq('enrichment_status','ready')
     .not('first_contact_email', 'is', null)
     .order(repSortCol, { ascending: repSortDir === 'asc', nullsFirst: false })
@@ -1160,7 +1172,7 @@ async function loadReportLeadsFiltered(page = 1) {
   document.getElementById('report-tbody').innerHTML = `<tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
 
   let q = sb.from('builtwith_company_targets')
-    .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,offering_rationale,assigned_to_partner', { count: 'exact' })
+    .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner', { count: 'estimated' })
     .eq('enrichment_status','ready')
     .not('first_contact_email', 'is', null)
     .order(repSortCol, { ascending: repSortDir === 'asc', nullsFirst: false });
@@ -1183,7 +1195,7 @@ async function loadReportLeadsFiltered(page = 1) {
 function renderReportTable() {
   const rows = filteredReport;
   const tbody = document.getElementById('report-tbody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="13"><div class="empty">Sin leads disponibles</div></td></tr>'; document.getElementById('r-pag').style.display='none'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="14"><div class="empty">Sin leads disponibles</div></td></tr>'; document.getElementById('r-pag').style.display='none'; return; }
   tbody.innerHTML = rows.map(l => {
     const s = l.priority_score||0;
     const sc = s>=35?'h':s>=20?'m':'l';
@@ -1203,13 +1215,21 @@ function renderReportTable() {
       ? `<a href="tel:${l.first_contact_phone}" style="color:var(--cyan);text-decoration:none;font-size:11px;white-space:nowrap">${l.first_contact_phone}</a>`
       : '<span style="color:var(--text3)">—</span>';
 
+    const porQueR = l.trigger_technology || l.recommended_offer
+      ? `<div style="max-width:190px">
+          ${l.trigger_technology ? `<span style="display:inline-block;background:rgba(124,108,252,0.12);border:1px solid rgba(124,108,252,0.25);color:#a78bfa;padding:1px 7px;border-radius:3px;font-size:9px;font-weight:600;margin-bottom:3px">${l.trigger_technology}</span>` : ''}
+          ${l.recommended_offer ? `<div style="font-size:10px;color:var(--cyan);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px" title="${l.recommended_offer}">${l.recommended_offer}</div>` : ''}
+          ${l.offering_rationale ? `<div style="font-size:9px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px" title="${l.offering_rationale}">${l.offering_rationale}</div>` : ''}
+        </div>`
+      : '<span style="color:var(--text3);font-size:11px">—</span>';
+
     if (locked) return `<tr class="row locked" title="Asignado a: ${l.assigned_to_partner}">
       <td style="text-align:center"><input type="checkbox" disabled/></td>
       <td class="company" style="opacity:.5">${l.company_name||'—'}</td>
       <td style="opacity:.5">${l.country||'—'}</td>
       <td><span class="tag ${tc}" style="opacity:.4">${l.west_telco_product||'—'}</span></td>
       <td><span class="score ${sc}" style="opacity:.4">${s}</span></td>
-      <td colspan="7" style="opacity:.5"><span class="asgn-badge">⬡ ${l.assigned_to_partner}</span></td>
+      <td colspan="8" style="opacity:.5"><span class="asgn-badge">⬡ ${l.assigned_to_partner}</span></td>
       <td></td>
     </tr>`;
 
@@ -1225,6 +1245,7 @@ function renderReportTable() {
       <td>${liBtn}</td>
       <td class="email-td">${l.first_contact_email||'—'}</td>
       <td>${phone}</td>
+      <td>${porQueR}</td>
       <td>${sources}</td>
       <td><span style="color:var(--green);font-size:10px">● disponible</span></td>
     </tr>`;
