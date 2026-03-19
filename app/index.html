@@ -68,9 +68,62 @@
       display: flex;
       flex-direction: column;
       position: fixed;
-      top: 0; left: 0;
-      z-index: 100;
+      top: 0; left: -240px;
+      z-index: 200;
+      transition: left 0.25s cubic-bezier(0.4,0,0.2,1);
+      box-shadow: 4px 0 24px rgba(0,0,0,0.4);
     }
+
+    .sidebar.open { left: 0; }
+
+    /* Overlay behind sidebar */
+    .sidebar-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5,13,26,0.6);
+      backdrop-filter: blur(2px);
+      z-index: 199;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .sidebar-overlay.visible { opacity: 1; pointer-events: all; }
+
+    /* Toggle button — always visible top-left */
+    .sidebar-toggle {
+      position: fixed;
+      top: 14px;
+      left: 16px;
+      z-index: 201;
+      width: 36px;
+      height: 36px;
+      background: var(--navy2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sidebar-toggle:hover { border-color: var(--blue); background: var(--navy3); }
+
+    .sidebar-toggle span {
+      display: block;
+      width: 16px;
+      height: 1.5px;
+      background: var(--text2);
+      border-radius: 2px;
+      transition: all 0.2s;
+    }
+
+    .sidebar-toggle.open span:nth-child(1) { transform: translateY(5.5px) rotate(45deg); }
+    .sidebar-toggle.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+    .sidebar-toggle.open span:nth-child(3) { transform: translateY(-5.5px) rotate(-45deg); }
+    .sidebar-toggle.open span { background: var(--cyan); }
 
     .logo-area {
       padding: 24px 20px 20px;
@@ -212,7 +265,7 @@
 
     /* ===== MAIN ===== */
     .main {
-      margin-left: 240px;
+      margin-left: 0;
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -227,7 +280,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 28px;
+      padding: 0 28px 0 64px;
       position: sticky;
       top: 0;
       z-index: 50;
@@ -708,8 +761,14 @@
 </head>
 <body>
 
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">
+  <span></span><span></span><span></span>
+</button>
+
 <!-- SIDEBAR -->
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
   <div class="logo-area">
     <div class="logo-eyebrow">Partner Enablement</div>
     <div class="logo-main">
@@ -1013,17 +1072,6 @@ async function loadStats() {
 }
 
 function set(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
-
-function showView(v) {
-  ['all','report','history'].forEach((n,i) => {
-    document.getElementById('view-'+n).style.display = n===v ? 'block' : 'none';
-    document.querySelectorAll('.nav-item')[i].classList.toggle('active', n===v);
-  });
-  const titles = { all:'Todos los leads', report:'Generar reporte', history:'Histórico de reportes' };
-  set('view-title', titles[v]);
-  if (v==='report' && reportLeads.length===0) loadReportLeads(1);
-  if (v==='history') loadHistory();
-}
 
 // ===== VIEW 1 =====
 async function loadAllLeads(page = 1) {
@@ -1469,6 +1517,38 @@ function updateSortIcons(prefix, col, dir) {
     icon.textContent = dir === 'asc' ? '↑' : '↓';
     icon.closest('th')?.classList.add(dir);
   }
+}
+
+// ===== SIDEBAR =====
+function toggleSidebar() {
+  const s = document.getElementById('sidebar');
+  const o = document.getElementById('sidebar-overlay');
+  const b = document.getElementById('sidebar-toggle');
+  const isOpen = s.classList.contains('open');
+  if (isOpen) { closeSidebar(); } else {
+    s.classList.add('open');
+    o.classList.add('visible');
+    b.classList.add('open');
+  }
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('visible');
+  document.getElementById('sidebar-toggle').classList.remove('open');
+}
+
+// Close sidebar when a nav item is clicked
+function showView(v) {
+  closeSidebar();
+  ['all','report','history'].forEach((n,i) => {
+    document.getElementById('view-'+n).style.display = n===v ? 'block' : 'none';
+    document.querySelectorAll('.nav-item')[i].classList.toggle('active', n===v);
+  });
+  const titles = { all:'Todos los leads', report:'Generar reporte', history:'Histórico de reportes' };
+  set('view-title', titles[v]);
+  if (v==='report' && reportLeads.length===0) loadReportLeads(1);
+  if (v==='history') loadHistory();
 }
 
 init();
