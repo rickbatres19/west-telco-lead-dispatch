@@ -1230,7 +1230,7 @@ async function loadReportLeads(page = 1) {
   document.getElementById('report-tbody').innerHTML = `<tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr>`;
   const { data, count } = await sb.from('builtwith_company_targets')
     .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner', { count: 'exact' })
-    .eq('enrichment_status','ready')
+    .eq('contacts_verified', true)
     .eq('domain_valid', true)
     .not('first_contact_email', 'is', null)
     .order(repSortCol, { ascending: repSortDir === 'asc', nullsFirst: false })
@@ -1257,7 +1257,7 @@ async function loadReportLeadsFiltered(page = 1) {
 
   let q = sb.from('builtwith_company_targets')
     .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner', { count: 'exact' })
-    .eq('enrichment_status','ready')
+    .eq('contacts_verified', true)
     .eq('domain_valid', true)
     .not('first_contact_email', 'is', null)
     .order(repSortCol, { ascending: repSortDir === 'asc', nullsFirst: false });
