@@ -770,20 +770,20 @@
     <div id="view-all">
       <div class="cards-grid">
         <div class="card c-blue">
-          <div class="card-label">Total listos</div>
+          <div class="card-label">Total registros</div>
           <div class="card-value blue" id="cv-ready">—</div>
         </div>
-        <div class="card c-cyan">
-          <div class="card-label">Asignados</div>
-          <div class="card-value purple" id="cv-assigned">—</div>
-        </div>
         <div class="card c-green">
-          <div class="card-label">Disponibles</div>
-          <div class="card-value green" id="cv-available">—</div>
+          <div class="card-label">Enriquecidos (ready)</div>
+          <div class="card-value green" id="cv-enriched">—</div>
         </div>
         <div class="card c-orange">
           <div class="card-label">En enriquecimiento</div>
           <div class="card-value orange" id="cv-pending">—</div>
+        </div>
+        <div class="card c-cyan">
+          <div class="card-label">Asignados a partners</div>
+          <div class="card-value purple" id="cv-assigned">—</div>
         </div>
       </div>
 
@@ -799,8 +799,14 @@
           <option value="Cono Sur">Cono Sur</option>
           <option value="Zona Andina">Zona Andina</option>
         </select>
+        <select id="af-enrich" onchange="filterAll()">
+          <option value="">Todos los estados</option>
+          <option value="ready">✓ Enriquecidos (ready)</option>
+          <option value="partial">◑ Parciales</option>
+          <option value="pending">○ Pendientes</option>
+        </select>
         <select id="af-status" onchange="filterAll()">
-          <option value="">Todos</option>
+          <option value="">Asignación: todos</option>
           <option value="yes">Asignados</option>
           <option value="no">Disponibles</option>
         </select>
@@ -811,8 +817,8 @@
         <table>
           <thead><tr>
             <th>Empresa</th><th>País</th><th>Producto</th><th>Score</th>
-            <th>Contacto</th><th>Cargo</th><th>Depto</th>
-            <th>LinkedIn</th><th>Email</th><th>Teléfono</th><th>Fuentes</th><th>Asignado a</th>
+            <th>Estado</th><th>Contacto</th><th>Cargo</th><th>Depto</th>
+            <th>LinkedIn</th><th>Email</th><th>Teléfono</th><th>Asignado a</th>
           </tr></thead>
           <tbody id="all-tbody"><tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando leads...</div></td></tr></tbody>
         </table>
@@ -955,21 +961,22 @@ async function init() {
 async function loadStats() {
   const { data } = await sb.from('builtwith_company_targets')
     .select('enrichment_status, assigned_to_partner')
-    .in('enrichment_status', ['ready','pending','partial']);
+    .limit(30000);
   if (!data) return;
+  const total    = data.length;
   const ready    = data.filter(r => r.enrichment_status === 'ready').length;
   const pending  = data.filter(r => r.enrichment_status !== 'ready').length;
   const assigned = data.filter(r => r.assigned_to_partner).length;
   const available = ready - assigned;
-  set('sm-ready', ready.toLocaleString());
-  set('sm-pending', pending.toLocaleString());
+  set('sm-ready',    ready.toLocaleString());
+  set('sm-pending',  pending.toLocaleString());
   set('sm-assigned', assigned.toLocaleString());
-  set('sm-available', available.toLocaleString());
-  set('cv-ready', ready.toLocaleString());
+  set('sm-available',available.toLocaleString());
+  set('cv-ready',    total.toLocaleString());
+  set('cv-enriched', ready.toLocaleString());
+  set('cv-pending',  pending.toLocaleString());
   set('cv-assigned', assigned.toLocaleString());
-  set('cv-available', available.toLocaleString());
-  set('cv-pending', pending.toLocaleString());
-  set('nb-all', ready.toLocaleString());
+  set('nb-all',      total.toLocaleString());
 }
 
 function set(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
@@ -998,13 +1005,12 @@ async function loadAllLeads(page = 1) {
   document.getElementById('all-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
   const { data, count } = await sb.from('builtwith_company_targets')
     .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,assigned_to_partner,assigned_at,enrichment_status', { count: 'exact' })
-    .eq('enrichment_status','ready')
     .order('priority_score', { ascending: false })
     .range(from, to);
   allLeads = data || [];
   filteredAll = [...allLeads];
   allTotal = count || 0;
-  set('topbar-sub', allTotal.toLocaleString() + ' leads listos');
+  set('topbar-sub', allTotal.toLocaleString() + ' registros totales');
   renderAllTable();
 }
 
@@ -1019,22 +1025,23 @@ async function loadAllLeadsFiltered(page = 1) {
   const prod = document.getElementById('af-product').value;
   const terr = document.getElementById('af-territory').value;
   const stat = document.getElementById('af-status').value;
+  const enrich = document.getElementById('af-enrich').value;
   const srch = document.getElementById('af-search').value.toLowerCase();
-  allFilters = { prod, terr, stat, srch };
+  allFilters = { prod, terr, stat, enrich, srch };
 
   const from = (page-1)*PAGE, to = from+PAGE-1;
   document.getElementById('all-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
 
   let q = sb.from('builtwith_company_targets')
     .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,assigned_to_partner,assigned_at,enrichment_status', { count: 'exact' })
-    .eq('enrichment_status','ready')
     .order('priority_score', { ascending: false });
 
-  if (prod) q = q.eq('west_telco_product', prod);
-  if (terr) q = q.eq('territory', terr);
+  if (prod)   q = q.eq('west_telco_product', prod);
+  if (terr)   q = q.eq('territory', terr);
+  if (enrich) q = q.eq('enrichment_status', enrich);
   if (stat === 'yes') q = q.not('assigned_to_partner', 'is', null);
-  if (stat === 'no') q = q.is('assigned_to_partner', null);
-  if (srch) q = q.ilike('company_name', `%${srch}%`);
+  if (stat === 'no')  q = q.is('assigned_to_partner', null);
+  if (srch)   q = q.ilike('company_name', `%${srch}%`);
 
   q = q.range(from, to);
   const { data, count } = await q;
@@ -1072,18 +1079,25 @@ function renderAllTable() {
       ? `<span class="asgn-badge">⬡ ${l.assigned_to_partner}</span>`
       : '<span style="color:var(--text3);font-size:11px">—</span>';
 
+    // Enrichment status badge
+    const enrichBadge = l.enrichment_status === 'ready'
+      ? `<span style="color:var(--green);font-size:10px;font-weight:600">● Enriquecido</span>`
+      : l.enrichment_status === 'partial'
+      ? `<span style="color:var(--orange);font-size:10px;font-weight:600">◑ Parcial</span>`
+      : `<span style="color:var(--text3);font-size:10px">○ Pendiente</span>`;
+
     return `<tr class="row">
       <td class="company">${l.company_name||'—'}</td>
       <td>${l.country||'—'}</td>
       <td><span class="tag ${tc}">${l.west_telco_product||'—'}</span></td>
       <td><span class="score ${sc}">${s}</span></td>
+      <td>${enrichBadge}</td>
       <td style="font-size:11px;color:var(--text)">${l.first_contact_name||'—'}</td>
       <td style="font-size:11px;color:var(--text2);max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${l.contact_position||''}">${l.contact_position||'—'}</td>
       <td style="font-size:11px;color:var(--text3)">${l.contact_department||'—'}</td>
       <td>${liBtn}</td>
       <td class="email-td">${l.first_contact_email||'—'}</td>
       <td style="font-size:11px;white-space:nowrap">${l.first_contact_phone ? `<a href="tel:${l.first_contact_phone}" style="color:var(--cyan);text-decoration:none">${l.first_contact_phone}</a>` : '<span style="color:var(--text3)">—</span>'}</td>
-      <td>${sources}</td>
       <td>${asgn}</td>
     </tr>`;
   }).join('');
