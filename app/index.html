@@ -881,9 +881,10 @@
           <thead><tr>
             <th style="width:36px"><input type="checkbox" id="r-check-all" onchange="toggleAllReport(this.checked)"/></th>
             <th>Empresa</th><th>País</th><th>Producto</th><th>Score</th>
-            <th>Contacto</th><th>Email</th><th>Rationale</th>
+            <th>Contacto</th><th>Cargo</th><th>Depto</th>
+            <th>LinkedIn</th><th>Email</th><th>Teléfono</th><th>Fuentes</th><th>Estado</th>
           </tr></thead>
-          <tbody id="report-tbody"><tr><td colspan="8"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr></tbody>
+          <tbody id="report-tbody"><tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr></tbody>
         </table>
         <div class="pagination" id="r-pag" style="display:none">
           <span class="page-info" id="r-pinfo"></span>
@@ -980,38 +981,66 @@ function showView(v) {
   });
   const titles = { all:'Todos los leads', report:'Generar reporte', history:'Histórico de reportes' };
   set('view-title', titles[v]);
-  if (v==='report' && reportLeads.length===0) loadReportLeads();
+  if (v==='report' && reportLeads.length===0) loadReportLeads(1);
   if (v==='history') loadHistory();
 }
 
+async function init() {
+  await loadStats();
+  await loadAllLeads(1);
+}
+
 // ===== VIEW 1 =====
-async function loadAllLeads() {
-  const { data } = await sb.from('builtwith_company_targets')
-    .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,company_linkedin_url,enrichment_sources,assigned_to_partner,assigned_at,enrichment_status')
+let allTotal = 0;
+async function loadAllLeads(page = 1) {
+  allPage = page;
+  const from = (page-1)*PAGE, to = from+PAGE-1;
+  document.getElementById('all-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
+  const { data, count } = await sb.from('builtwith_company_targets')
+    .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,assigned_to_partner,assigned_at,enrichment_status', { count: 'exact' })
     .eq('enrichment_status','ready')
     .order('priority_score', { ascending: false })
-    .limit(3000);
+    .range(from, to);
   allLeads = data || [];
   filteredAll = [...allLeads];
-  allPage = 1;
-  set('topbar-sub', allLeads.length.toLocaleString() + ' leads listos');
+  allTotal = count || 0;
+  set('topbar-sub', allTotal.toLocaleString() + ' leads listos');
   renderAllTable();
 }
 
 function filterAll() {
+  // With server-side pagination, re-fetch with filters
+  loadAllLeadsFiltered();
+}
+
+let allFilters = {};
+async function loadAllLeadsFiltered(page = 1) {
+  allPage = page;
   const prod = document.getElementById('af-product').value;
   const terr = document.getElementById('af-territory').value;
   const stat = document.getElementById('af-status').value;
   const srch = document.getElementById('af-search').value.toLowerCase();
-  filteredAll = allLeads.filter(l => {
-    if (prod && l.west_telco_product !== prod) return false;
-    if (terr && l.territory !== terr) return false;
-    if (stat==='yes' && !l.assigned_to_partner) return false;
-    if (stat==='no' && l.assigned_to_partner) return false;
-    if (srch && !(l.company_name||'').toLowerCase().includes(srch)) return false;
-    return true;
-  });
-  allPage = 1;
+  allFilters = { prod, terr, stat, srch };
+
+  const from = (page-1)*PAGE, to = from+PAGE-1;
+  document.getElementById('all-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
+
+  let q = sb.from('builtwith_company_targets')
+    .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,assigned_to_partner,assigned_at,enrichment_status', { count: 'exact' })
+    .eq('enrichment_status','ready')
+    .order('priority_score', { ascending: false });
+
+  if (prod) q = q.eq('west_telco_product', prod);
+  if (terr) q = q.eq('territory', terr);
+  if (stat === 'yes') q = q.not('assigned_to_partner', 'is', null);
+  if (stat === 'no') q = q.is('assigned_to_partner', null);
+  if (srch) q = q.ilike('company_name', `%${srch}%`);
+
+  q = q.range(from, to);
+  const { data, count } = await q;
+  allLeads = data || [];
+  filteredAll = [...allLeads];
+  allTotal = count || 0;
   renderAllTable();
 }
 
@@ -1058,73 +1087,111 @@ function renderAllTable() {
       <td>${asgn}</td>
     </tr>`;
   }).join('');
-  renderPag('all', filteredAll.length, allPage, p => { allPage=p; renderAllTable(); });
+  renderPag('all', allTotal, allPage, p => { loadAllLeadsFiltered(p); });
 }
 
 // ===== VIEW 2 =====
-async function loadReportLeads() {
-  document.getElementById('report-tbody').innerHTML = '<tr><td colspan="8"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>';
-  const { data } = await sb.from('builtwith_company_targets')
-    .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,offering_rationale,assigned_to_partner')
+let reportTotal = 0;
+async function loadReportLeads(page = 1) {
+  reportPage = page;
+  const from = (page-1)*PAGE, to = from+PAGE-1;
+  document.getElementById('report-tbody').innerHTML = `<tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr>`;
+  const { data, count } = await sb.from('builtwith_company_targets')
+    .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,offering_rationale,assigned_to_partner', { count: 'exact' })
     .eq('enrichment_status','ready')
     .order('priority_score', { ascending: false })
-    .limit(3000);
+    .range(from, to);
   reportLeads = data || [];
   filteredReport = [...reportLeads];
-  reportPage = 1;
+  reportTotal = count || 0;
   renderReportTable();
 }
 
 function filterReport() {
+  loadReportLeadsFiltered();
+}
+
+async function loadReportLeadsFiltered(page = 1) {
+  reportPage = page;
   const prod  = document.getElementById('rf-product').value;
   const terr  = document.getElementById('rf-territory').value;
   const score = document.getElementById('rf-score').value;
   const srch  = document.getElementById('rf-search').value.toLowerCase();
-  filteredReport = reportLeads.filter(l => {
-    if (prod && l.west_telco_product !== prod) return false;
-    if (terr && l.territory !== terr) return false;
-    if (score==='high' && l.priority_score < 35) return false;
-    if (score==='mid' && (l.priority_score<20||l.priority_score>=35)) return false;
-    if (score==='low' && l.priority_score >= 20) return false;
-    if (srch && !(l.company_name||'').toLowerCase().includes(srch)) return false;
-    return true;
-  });
-  reportPage = 1;
+
+  const from = (page-1)*PAGE, to = from+PAGE-1;
+  document.getElementById('report-tbody').innerHTML = `<tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
+
+  let q = sb.from('builtwith_company_targets')
+    .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,offering_rationale,assigned_to_partner', { count: 'exact' })
+    .eq('enrichment_status','ready')
+    .order('priority_score', { ascending: false });
+
+  if (prod) q = q.eq('west_telco_product', prod);
+  if (terr) q = q.eq('territory', terr);
+  if (score==='high') q = q.gte('priority_score', 35);
+  if (score==='mid') q = q.gte('priority_score', 20).lt('priority_score', 35);
+  if (score==='low') q = q.lt('priority_score', 20);
+  if (srch) q = q.ilike('company_name', `%${srch}%`);
+
+  q = q.range(from, to);
+  const { data, count } = await q;
+  reportLeads = data || [];
+  filteredReport = [...reportLeads];
+  reportTotal = count || 0;
   renderReportTable();
 }
 
 function renderReportTable() {
-  const rows = filteredReport.slice((reportPage-1)*PAGE, reportPage*PAGE);
+  const rows = filteredReport;
   const tbody = document.getElementById('report-tbody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8"><div class="empty">Sin leads disponibles</div></td></tr>'; document.getElementById('r-pag').style.display='none'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="13"><div class="empty">Sin leads disponibles</div></td></tr>'; document.getElementById('r-pag').style.display='none'; return; }
   tbody.innerHTML = rows.map(l => {
     const s = l.priority_score||0;
     const sc = s>=35?'h':s>=20?'m':'l';
     const tc = tagClass(l.west_telco_product);
     const locked = !!l.assigned_to_partner;
     const chk = reportSelected.has(l.id) ? 'checked' : '';
-    const rat = (l.offering_rationale||'—').substring(0,65);
+
+    const liBtn = l.contact_linkedin_url
+      ? `<a href="${l.contact_linkedin_url}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,119,181,0.15);border:1px solid rgba(0,119,181,0.3);color:#0a8fb5;padding:2px 8px;border-radius:4px;font-size:10px;text-decoration:none;white-space:nowrap">in</a>`
+      : '<span style="color:var(--text3);font-size:11px">—</span>';
+
+    const sources = Array.isArray(l.enrichment_sources) && l.enrichment_sources.length
+      ? l.enrichment_sources.map(s => `<span style="background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.15);color:var(--cyan);padding:1px 6px;border-radius:3px;font-size:9px;margin-right:3px">${s}</span>`).join('')
+      : '<span style="color:var(--text3);font-size:10px">builtwith</span>';
+
+    const phone = l.first_contact_phone
+      ? `<a href="tel:${l.first_contact_phone}" style="color:var(--cyan);text-decoration:none;font-size:11px;white-space:nowrap">${l.first_contact_phone}</a>`
+      : '<span style="color:var(--text3)">—</span>';
+
     if (locked) return `<tr class="row locked" title="Asignado a: ${l.assigned_to_partner}">
       <td style="text-align:center"><input type="checkbox" disabled/></td>
       <td class="company" style="opacity:.5">${l.company_name||'—'}</td>
       <td style="opacity:.5">${l.country||'—'}</td>
       <td><span class="tag ${tc}" style="opacity:.4">${l.west_telco_product||'—'}</span></td>
       <td><span class="score ${sc}" style="opacity:.4">${s}</span></td>
-      <td colspan="3"><span class="asgn-badge">⬡ ${l.assigned_to_partner}</span></td>
+      <td colspan="7" style="opacity:.5"><span class="asgn-badge">⬡ ${l.assigned_to_partner}</span></td>
+      <td></td>
     </tr>`;
+
     return `<tr class="row ${reportSelected.has(l.id)?'selected':''}" onclick="toggleR(${l.id},event)">
       <td style="text-align:center"><input type="checkbox" ${chk} onclick="toggleR(${l.id},event)"/></td>
       <td class="company">${l.company_name||'—'}</td>
       <td>${l.country||'—'}</td>
       <td><span class="tag ${tc}">${l.west_telco_product||'—'}</span></td>
       <td><span class="score ${sc}">${s}</span></td>
-      <td style="font-size:11px">${l.first_contact_name||'—'}</td>
+      <td style="font-size:11px;color:var(--text)">${l.first_contact_name||'—'}</td>
+      <td style="font-size:11px;color:var(--text2);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${l.contact_position||''}">${l.contact_position||'—'}</td>
+      <td style="font-size:11px;color:var(--text3)">${l.contact_department||'—'}</td>
+      <td>${liBtn}</td>
       <td class="email-td">${l.first_contact_email||'—'}</td>
-      <td class="rat-td" title="${l.offering_rationale||''}">${rat}</td>
+      <td>${phone}</td>
+      <td>${sources}</td>
+      <td><span style="color:var(--green);font-size:10px">● disponible</span></td>
     </tr>`;
   }).join('');
   updateRUI();
-  renderPag('r', filteredReport.filter(l=>!l.assigned_to_partner).length, reportPage, p => { reportPage=p; renderReportTable(); });
+  renderPag('r', reportTotal, reportPage, p => { loadReportLeadsFiltered(p); });
 }
 
 function toggleR(id, e) {
