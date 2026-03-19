@@ -1070,16 +1070,20 @@ async function init() {
 
 async function loadStats() {
   try {
-    const { data, error } = await sb.rpc('get_lead_stats');
-    if (error || !data) return;
-    const s = typeof data === 'string' ? JSON.parse(data) : data;
-    const available = (s.enriched || 0) - (s.assigned || 0);
-    set('sm-ready',    (s.enriched||0).toLocaleString());
+    const [statsRes, reportCountRes] = await Promise.all([
+      sb.rpc('get_lead_stats'),
+      sb.rpc('get_report_leads_count')
+    ]);
+    const s = typeof statsRes.data === 'string' ? JSON.parse(statsRes.data) : statsRes.data;
+    const reportCount = reportCountRes.data || 0;
+    if (!s) return;
+    const available = reportCount - (s.assigned || 0);
+    set('sm-ready',    reportCount.toLocaleString());
     set('sm-pending',  (s.pending||0).toLocaleString());
     set('sm-assigned', (s.assigned||0).toLocaleString());
-    set('sm-available',available.toLocaleString());
+    set('sm-available', available.toLocaleString());
     set('cv-ready',    (s.total||0).toLocaleString());
-    set('cv-enriched', (s.enriched||0).toLocaleString());
+    set('cv-enriched', reportCount.toLocaleString());
     set('cv-pending',  (s.pending||0).toLocaleString());
     set('cv-assigned', (s.assigned||0).toLocaleString());
     set('nb-all',      (s.total||0).toLocaleString());
@@ -1217,7 +1221,7 @@ async function loadReportLeads(page = 1) {
   const from = (page-1)*PAGE, to = from+PAGE-1;
   document.getElementById('report-tbody').innerHTML = `<tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr>`;
   const { data, count } = await sb.from('builtwith_company_targets')
-    .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner', { count: 'estimated' })
+    .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner', { count: 'exact' })
     .eq('enrichment_status','ready')
     .not('first_contact_email', 'is', null)
     .order(repSortCol, { ascending: repSortDir === 'asc', nullsFirst: false })
@@ -1243,7 +1247,7 @@ async function loadReportLeadsFiltered(page = 1) {
   document.getElementById('report-tbody').innerHTML = `<tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
 
   let q = sb.from('builtwith_company_targets')
-    .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner', { count: 'estimated' })
+    .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner', { count: 'exact' })
     .eq('enrichment_status','ready')
     .not('first_contact_email', 'is', null)
     .order(repSortCol, { ascending: repSortDir === 'asc', nullsFirst: false });
