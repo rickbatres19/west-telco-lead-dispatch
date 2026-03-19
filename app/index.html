@@ -1027,7 +1027,7 @@ async function loadAllLeads(page = 1) {
   document.getElementById('all-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
   try {
     const { data, count, error } = await sb.from('builtwith_company_targets')
-      .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner,assigned_at,enrichment_status', { count: 'estimated' })
+      .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner,assigned_at,enrichment_status', { count: 'estimated' })
       .order(allSortCol, { ascending: allSortDir === 'asc', nullsFirst: false })
       .range(from, to);
     if (error) throw error;
@@ -1059,7 +1059,7 @@ async function loadAllLeadsFiltered(page = 1) {
   document.getElementById('all-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
 
   let q = sb.from('builtwith_company_targets')
-    .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner,assigned_at,enrichment_status', { count: 'estimated' });
+    .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner,assigned_at,enrichment_status', { count: 'estimated' });
 
   if (prod)   q = q.eq('west_telco_product', prod);
   if (terr)   q = q.eq('territory', terr);
@@ -1121,8 +1121,20 @@ function renderAllTable() {
         </div>`
       : '<span style="color:var(--text3);font-size:11px">—</span>';
 
+    // Company info mini-card
+    const companyInfo = `<div>
+      <div style="${nameStyle}font-weight:500;color:${l.company_name ? 'var(--text)' : 'var(--text2)'};font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px" title="${l.canonical_domain||''}">${displayName}</div>
+      <div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px">
+        ${l.company_vertical && l.company_vertical !== 'Unknown' ? `<span style="background:rgba(0,212,255,0.07);border:1px solid rgba(0,212,255,0.15);color:var(--cyan);padding:0px 5px;border-radius:3px;font-size:9px">${l.company_vertical}</span>` : ''}
+        ${l.company_employees ? `<span style="background:rgba(255,255,255,0.04);color:var(--text3);padding:0px 5px;border-radius:3px;font-size:9px">👥 ${l.company_employees}</span>` : ''}
+        ${l.company_revenue ? `<span style="background:rgba(255,255,255,0.04);color:var(--text3);padding:0px 5px;border-radius:3px;font-size:9px">💰 ${l.company_revenue}</span>` : ''}
+        ${l.company_tech_spend ? `<span style="background:rgba(91,240,192,0.06);color:var(--green);padding:0px 5px;border-radius:3px;font-size:9px">💻 ${l.company_tech_spend}</span>` : ''}
+        ${l.company_hosting ? `<span style="background:rgba(255,255,255,0.04);color:var(--text3);padding:0px 5px;border-radius:3px;font-size:9px">🖥 ${l.company_hosting.split(';')[0]}</span>` : ''}
+      </div>
+    </div>`;
+
     return `<tr class="row">
-      <td class="company" style="${nameStyle}" title="${l.canonical_domain||''} ${l.company_vertical ? '· '+l.company_vertical : ''} ${l.company_employees ? '· '+l.company_employees+' emp' : ''} ${l.company_revenue ? '· '+l.company_revenue : ''}">${displayName}</td>
+      <td style="min-width:170px;vertical-align:top;padding-top:10px">${companyInfo}</td>
       <td>${l.country||'—'}</td>
       <td><span class="tag ${tc}">${l.west_telco_product||'—'}</span></td>
       <td><span class="score ${sc}">${s}</span></td>
@@ -1146,7 +1158,7 @@ async function loadReportLeads(page = 1) {
   const from = (page-1)*PAGE, to = from+PAGE-1;
   document.getElementById('report-tbody').innerHTML = `<tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr>`;
   const { data, count } = await sb.from('builtwith_company_targets')
-    .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner', { count: 'estimated' })
+    .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner', { count: 'estimated' })
     .eq('enrichment_status','ready')
     .not('first_contact_email', 'is', null)
     .order(repSortCol, { ascending: repSortDir === 'asc', nullsFirst: false })
@@ -1172,7 +1184,7 @@ async function loadReportLeadsFiltered(page = 1) {
   document.getElementById('report-tbody').innerHTML = `<tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
 
   let q = sb.from('builtwith_company_targets')
-    .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner', { count: 'estimated' })
+    .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner', { count: 'estimated' })
     .eq('enrichment_status','ready')
     .not('first_contact_email', 'is', null)
     .order(repSortCol, { ascending: repSortDir === 'asc', nullsFirst: false });
@@ -1226,9 +1238,20 @@ function renderReportTable() {
         </div>`
       : '<span style="color:var(--text3);font-size:11px">—</span>';
 
+    const companyInfoR = `<div>
+      <div style="${nameStyleR}font-weight:500;color:${l.company_name ? 'var(--text)' : 'var(--text2)'};font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:155px" title="${l.canonical_domain||''}">${displayNameR}</div>
+      <div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px">
+        ${l.company_vertical && l.company_vertical !== 'Unknown' ? `<span style="background:rgba(0,212,255,0.07);border:1px solid rgba(0,212,255,0.15);color:var(--cyan);padding:0px 5px;border-radius:3px;font-size:9px">${l.company_vertical}</span>` : ''}
+        ${l.company_employees ? `<span style="background:rgba(255,255,255,0.04);color:var(--text3);padding:0px 5px;border-radius:3px;font-size:9px">👥 ${l.company_employees}</span>` : ''}
+        ${l.company_revenue ? `<span style="background:rgba(255,255,255,0.04);color:var(--text3);padding:0px 5px;border-radius:3px;font-size:9px">💰 ${l.company_revenue}</span>` : ''}
+        ${l.company_tech_spend ? `<span style="background:rgba(91,240,192,0.06);color:var(--green);padding:0px 5px;border-radius:3px;font-size:9px">💻 ${l.company_tech_spend}</span>` : ''}
+        ${l.company_hosting ? `<span style="background:rgba(255,255,255,0.04);color:var(--text3);padding:0px 5px;border-radius:3px;font-size:9px">🖥 ${l.company_hosting.split(';')[0]}</span>` : ''}
+      </div>
+    </div>`;
+
     if (locked) return `<tr class="row locked" title="Asignado a: ${l.assigned_to_partner}">
       <td style="text-align:center"><input type="checkbox" disabled/></td>
-      <td class="company" style="opacity:.5">${displayNameR}</td>
+      <td style="min-width:160px;opacity:.5">${companyInfoR}</td>
       <td style="opacity:.5">${l.country||'—'}</td>
       <td><span class="tag ${tc}" style="opacity:.4">${l.west_telco_product||'—'}</span></td>
       <td><span class="score ${sc}" style="opacity:.4">${s}</span></td>
@@ -1237,8 +1260,8 @@ function renderReportTable() {
     </tr>`;
 
     return `<tr class="row ${reportSelected.has(l.id)?'selected':''}" onclick="toggleR(${l.id},event)">
-      <td style="text-align:center"><input type="checkbox" ${chk} onclick="toggleR(${l.id},event)"/></td>
-      <td class="company" style="${nameStyleR}" title="${l.canonical_domain||''}">${displayNameR}</td>
+      <td style="text-align:center;vertical-align:top;padding-top:10px"><input type="checkbox" ${chk} onclick="toggleR(${l.id},event)"/></td>
+      <td style="min-width:160px;vertical-align:top;padding-top:8px">${companyInfoR}</td>
       <td>${l.country||'—'}</td>
       <td><span class="tag ${tc}">${l.west_telco_product||'—'}</span></td>
       <td><span class="score ${sc}">${s}</span></td>
