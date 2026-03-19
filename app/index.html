@@ -587,9 +587,10 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 12px 16px;
-      border-top: 1px solid var(--border);
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
       justify-content: space-between;
+      background: var(--navy3);
     }
 
     .page-info { font-size: 11px; color: var(--text3); }
@@ -880,6 +881,10 @@
       </div>
 
       <div class="table-wrap">
+        <div class="pagination" id="all-pag" style="display:none">
+          <span class="page-info" id="all-pinfo"></span>
+          <div class="page-btns" id="all-pbtns"></div>
+        </div>
         <table>
           <thead><tr>
             <th class="sortable" onclick="sortAll('company_name')">Empresa <span class="sort-icon" id="si-company_name">⇅</span></th>
@@ -901,10 +906,6 @@
           </tr></thead>
           <tbody id="all-tbody"><tr><td colspan="16"><div class="loading"><div class="spinner"></div> Cargando leads...</div></td></tr></tbody>
         </table>
-        <div class="pagination" id="all-pag" style="display:none">
-          <span class="page-info" id="all-pinfo"></span>
-          <div class="page-btns" id="all-pbtns"></div>
-        </div>
       </div>
     </div>
 
@@ -962,6 +963,10 @@
       </div>
 
       <div class="table-wrap">
+        <div class="pagination" id="r-pag" style="display:none">
+          <span class="page-info" id="r-pinfo"></span>
+          <div class="page-btns" id="r-pbtns"></div>
+        </div>
         <table>
           <thead><tr>
             <th style="width:36px"><input type="checkbox" id="r-check-all" onchange="toggleAllReport(this.checked)"/></th>
@@ -983,10 +988,6 @@
           </tr></thead>
           <tbody id="report-tbody"><tr><td colspan="16"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr></tbody>
         </table>
-        <div class="pagination" id="r-pag" style="display:none">
-          <span class="page-info" id="r-pinfo"></span>
-          <div class="page-btns" id="r-pbtns"></div>
-        </div>
       </div>
 
       <div class="action-bar">
@@ -1480,9 +1481,12 @@ function renderPag(prefix, total, current, cb) {
   pag.style.display='flex';
   const s=(current-1)*PAGE+1, e=Math.min(current*PAGE,total);
   info.textContent=`Mostrando ${s}–${e} de ${total.toLocaleString()}`;
-  let html=`<button class="page-btn" ${current===1?'disabled':''} onclick="(${cb.toString()})(${current-1})">‹</button>`;
-  for(let i=Math.max(1,current-2);i<=Math.min(pages,current+2);i++) html+=`<button class="page-btn ${i===current?'active':''}" onclick="(${cb.toString()})(${i})">${i}</button>`;
-  html+=`<button class="page-btn" ${current===pages?'disabled':''} onclick="(${cb.toString()})(${current+1})">›</button>`;
+  const cbStr = cb.toString();
+  let html=`<button class="page-btn" ${current===1?'disabled':''} onclick="(${cbStr})(${current-1});window.scrollTo(0,0)">‹</button>`;
+  for(let i=Math.max(1,current-2);i<=Math.min(pages,current+2);i++) {
+    html+=`<button class="page-btn ${i===current?'active':''}" onclick="(${cbStr})(${i});window.scrollTo(0,0)">${i}</button>`;
+  }
+  html+=`<button class="page-btn" ${current===pages?'disabled':''} onclick="(${cbStr})(${current+1});window.scrollTo(0,0)">›</button>`;
   btns.innerHTML=html;
 }
 
