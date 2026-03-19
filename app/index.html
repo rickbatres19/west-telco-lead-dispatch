@@ -828,16 +828,19 @@
             <th class="sortable" onclick="sortAll('west_telco_product')">Producto <span class="sort-icon" id="si-west_telco_product">⇅</span></th>
             <th class="sortable" onclick="sortAll('priority_score')">Score <span class="sort-icon" id="si-priority_score">↓</span></th>
             <th class="sortable" onclick="sortAll('enrichment_status')">Estado <span class="sort-icon" id="si-enrichment_status">⇅</span></th>
+            <th class="sortable" onclick="sortAll('company_vertical')">Industria <span class="sort-icon" id="si-company_vertical">⇅</span></th>
+            <th class="sortable" onclick="sortAll('company_employees')">Empleados <span class="sort-icon" id="si-company_employees">⇅</span></th>
+            <th>Revenue</th>
+            <th>Tech Spend</th>
             <th>Contacto</th>
             <th class="sortable" onclick="sortAll('contact_position')">Cargo <span class="sort-icon" id="si-contact_position">⇅</span></th>
-            <th>Depto</th>
             <th>LinkedIn</th>
             <th>Email</th>
             <th>Teléfono</th>
             <th>Por qué / Oferta</th>
             <th class="sortable" onclick="sortAll('assigned_to_partner')">Asignado a <span class="sort-icon" id="si-assigned_to_partner">⇅</span></th>
           </tr></thead>
-          <tbody id="all-tbody"><tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando leads...</div></td></tr></tbody>
+          <tbody id="all-tbody"><tr><td colspan="16"><div class="loading"><div class="spinner"></div> Cargando leads...</div></td></tr></tbody>
         </table>
         <div class="pagination" id="all-pag" style="display:none">
           <span class="page-info" id="all-pinfo"></span>
@@ -907,17 +910,19 @@
             <th class="sortable" onclick="sortReport('country')">País <span class="sort-icon" id="rsi-country">⇅</span></th>
             <th class="sortable" onclick="sortReport('west_telco_product')">Producto <span class="sort-icon" id="rsi-west_telco_product">⇅</span></th>
             <th class="sortable" onclick="sortReport('priority_score')">Score <span class="sort-icon" id="rsi-priority_score">↓</span></th>
+            <th class="sortable" onclick="sortReport('company_vertical')">Industria <span class="sort-icon" id="rsi-company_vertical">⇅</span></th>
+            <th class="sortable" onclick="sortReport('company_employees')">Empleados <span class="sort-icon" id="rsi-company_employees">⇅</span></th>
+            <th>Revenue</th>
+            <th>Tech Spend</th>
             <th>Contacto</th>
             <th class="sortable" onclick="sortReport('contact_position')">Cargo <span class="sort-icon" id="rsi-contact_position">⇅</span></th>
-            <th>Depto</th>
             <th>LinkedIn</th>
             <th>Email</th>
             <th>Teléfono</th>
             <th>Por qué / Oferta</th>
-            <th>Fuentes</th>
             <th class="sortable" onclick="sortReport('assigned_to_partner')">Estado <span class="sort-icon" id="rsi-assigned_to_partner">⇅</span></th>
           </tr></thead>
-          <tbody id="report-tbody"><tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr></tbody>
+          <tbody id="report-tbody"><tr><td colspan="16"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr></tbody>
         </table>
         <div class="pagination" id="r-pag" style="display:none">
           <span class="page-info" id="r-pinfo"></span>
@@ -1121,27 +1126,18 @@ function renderAllTable() {
         </div>`
       : '<span style="color:var(--text3);font-size:11px">—</span>';
 
-    // Company info mini-card
-    const companyInfo = `<div>
-      <div style="${nameStyle}font-weight:500;color:${l.company_name ? 'var(--text)' : 'var(--text2)'};font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px" title="${l.canonical_domain||''}">${displayName}</div>
-      <div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px">
-        ${l.company_vertical && l.company_vertical !== 'Unknown' ? `<span style="background:rgba(0,212,255,0.07);border:1px solid rgba(0,212,255,0.15);color:var(--cyan);padding:0px 5px;border-radius:3px;font-size:9px">${l.company_vertical}</span>` : ''}
-        ${l.company_employees ? `<span style="background:rgba(255,255,255,0.04);color:var(--text3);padding:0px 5px;border-radius:3px;font-size:9px">👥 ${l.company_employees}</span>` : ''}
-        ${l.company_revenue ? `<span style="background:rgba(255,255,255,0.04);color:var(--text3);padding:0px 5px;border-radius:3px;font-size:9px">💰 ${l.company_revenue}</span>` : ''}
-        ${l.company_tech_spend ? `<span style="background:rgba(91,240,192,0.06);color:var(--green);padding:0px 5px;border-radius:3px;font-size:9px">💻 ${l.company_tech_spend}</span>` : ''}
-        ${l.company_hosting ? `<span style="background:rgba(255,255,255,0.04);color:var(--text3);padding:0px 5px;border-radius:3px;font-size:9px">🖥 ${l.company_hosting.split(';')[0]}</span>` : ''}
-      </div>
-    </div>`;
-
     return `<tr class="row">
-      <td style="min-width:170px;vertical-align:top;padding-top:10px">${companyInfo}</td>
+      <td class="company" style="${nameStyle}" title="${l.canonical_domain||''}">${displayName}</td>
       <td>${l.country||'—'}</td>
       <td><span class="tag ${tc}">${l.west_telco_product||'—'}</span></td>
       <td><span class="score ${sc}">${s}</span></td>
       <td>${enrichBadge}</td>
+      <td style="font-size:11px;color:var(--cyan)">${l.company_vertical && l.company_vertical !== 'Unknown' ? l.company_vertical : '—'}</td>
+      <td style="font-size:11px;color:var(--text2)">${l.company_employees||'—'}</td>
+      <td style="font-size:11px;color:var(--text2)">${l.company_revenue||'—'}</td>
+      <td style="font-size:11px;color:var(--green)">${l.company_tech_spend||'—'}</td>
       <td style="font-size:11px;color:var(--text)">${l.first_contact_name||'—'}</td>
-      <td style="font-size:11px;color:var(--text2);max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${l.contact_position||''}">${l.contact_position||'—'}</td>
-      <td style="font-size:11px;color:var(--text3)">${l.contact_department||'—'}</td>
+      <td style="font-size:11px;color:var(--text2);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${l.contact_position||''}">${l.contact_position||'—'}</td>
       <td>${liBtn}</td>
       <td class="email-td">${l.first_contact_email||'—'}</td>
       <td style="font-size:11px;white-space:nowrap">${l.first_contact_phone ? `<a href="tel:${l.first_contact_phone}" style="color:var(--cyan);text-decoration:none">${l.first_contact_phone}</a>` : '<span style="color:var(--text3)">—</span>'}</td>
@@ -1238,41 +1234,32 @@ function renderReportTable() {
         </div>`
       : '<span style="color:var(--text3);font-size:11px">—</span>';
 
-    const companyInfoR = `<div>
-      <div style="${nameStyleR}font-weight:500;color:${l.company_name ? 'var(--text)' : 'var(--text2)'};font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:155px" title="${l.canonical_domain||''}">${displayNameR}</div>
-      <div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px">
-        ${l.company_vertical && l.company_vertical !== 'Unknown' ? `<span style="background:rgba(0,212,255,0.07);border:1px solid rgba(0,212,255,0.15);color:var(--cyan);padding:0px 5px;border-radius:3px;font-size:9px">${l.company_vertical}</span>` : ''}
-        ${l.company_employees ? `<span style="background:rgba(255,255,255,0.04);color:var(--text3);padding:0px 5px;border-radius:3px;font-size:9px">👥 ${l.company_employees}</span>` : ''}
-        ${l.company_revenue ? `<span style="background:rgba(255,255,255,0.04);color:var(--text3);padding:0px 5px;border-radius:3px;font-size:9px">💰 ${l.company_revenue}</span>` : ''}
-        ${l.company_tech_spend ? `<span style="background:rgba(91,240,192,0.06);color:var(--green);padding:0px 5px;border-radius:3px;font-size:9px">💻 ${l.company_tech_spend}</span>` : ''}
-        ${l.company_hosting ? `<span style="background:rgba(255,255,255,0.04);color:var(--text3);padding:0px 5px;border-radius:3px;font-size:9px">🖥 ${l.company_hosting.split(';')[0]}</span>` : ''}
-      </div>
-    </div>`;
-
     if (locked) return `<tr class="row locked" title="Asignado a: ${l.assigned_to_partner}">
       <td style="text-align:center"><input type="checkbox" disabled/></td>
-      <td style="min-width:160px;opacity:.5">${companyInfoR}</td>
+      <td class="company" style="opacity:.5">${displayNameR}</td>
       <td style="opacity:.5">${l.country||'—'}</td>
       <td><span class="tag ${tc}" style="opacity:.4">${l.west_telco_product||'—'}</span></td>
       <td><span class="score ${sc}" style="opacity:.4">${s}</span></td>
-      <td colspan="8" style="opacity:.5"><span class="asgn-badge">⬡ ${l.assigned_to_partner}</span></td>
+      <td colspan="10" style="opacity:.5"><span class="asgn-badge">⬡ ${l.assigned_to_partner}</span></td>
       <td></td>
     </tr>`;
 
     return `<tr class="row ${reportSelected.has(l.id)?'selected':''}" onclick="toggleR(${l.id},event)">
-      <td style="text-align:center;vertical-align:top;padding-top:10px"><input type="checkbox" ${chk} onclick="toggleR(${l.id},event)"/></td>
-      <td style="min-width:160px;vertical-align:top;padding-top:8px">${companyInfoR}</td>
+      <td style="text-align:center"><input type="checkbox" ${chk} onclick="toggleR(${l.id},event)"/></td>
+      <td class="company" style="${nameStyleR}" title="${l.canonical_domain||''}">${displayNameR}</td>
       <td>${l.country||'—'}</td>
       <td><span class="tag ${tc}">${l.west_telco_product||'—'}</span></td>
       <td><span class="score ${sc}">${s}</span></td>
+      <td style="font-size:11px;color:var(--cyan)">${l.company_vertical && l.company_vertical !== 'Unknown' ? l.company_vertical : '—'}</td>
+      <td style="font-size:11px;color:var(--text2)">${l.company_employees||'—'}</td>
+      <td style="font-size:11px;color:var(--text2)">${l.company_revenue||'—'}</td>
+      <td style="font-size:11px;color:var(--green)">${l.company_tech_spend||'—'}</td>
       <td style="font-size:11px;color:var(--text)">${l.first_contact_name||'—'}</td>
       <td style="font-size:11px;color:var(--text2);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${l.contact_position||''}">${l.contact_position||'—'}</td>
-      <td style="font-size:11px;color:var(--text3)">${l.contact_department||'—'}</td>
       <td>${liBtn}</td>
       <td class="email-td">${l.first_contact_email||'—'}</td>
       <td>${phone}</td>
       <td>${porQueR}</td>
-      <td>${sources}</td>
       <td><span style="color:var(--green);font-size:10px">● disponible</span></td>
     </tr>`;
   }).join('');
@@ -1359,13 +1346,28 @@ function exportExcel(leads, pName, pPeriod) {
   const data = leads || reportLeads.filter(l=>reportSelected.has(l.id));
   if (!data.length) return;
   const rows = data.map(l => ({
-    'Empresa': l.company_name||'', 'País': l.country||'', 'Territorio': l.territory||'',
-    'Producto': l.west_telco_product||'', 'Score': l.priority_score||0,
-    'Contacto': l.first_contact_name||'', 'Email': l.first_contact_email||'',
-    'Por qué es un buen lead': l.offering_rationale||''
+    'Empresa':              l.company_name || l.domain_derived_name || l.canonical_domain || '',
+    'Dominio':              l.canonical_domain || '',
+    'País':                 l.country || '',
+    'Territorio':           l.territory || '',
+    'Producto recomendado': l.west_telco_product || '',
+    'Score':                l.priority_score || 0,
+    'Industria':            l.company_vertical && l.company_vertical !== 'Unknown' ? l.company_vertical : '',
+    'Empleados':            l.company_employees || '',
+    'Revenue':              l.company_revenue || '',
+    'Tech Spend':           l.company_tech_spend || '',
+    'Nombre contacto':      l.first_contact_name || '',
+    'Cargo':                l.contact_position || '',
+    'Email contacto':       l.first_contact_email || '',
+    'Teléfono':             l.first_contact_phone || '',
+    'LinkedIn contacto':    l.contact_linkedin_url || '',
+    'LinkedIn empresa':     l.company_linkedin_url || '',
+    'Tecnología detectada': l.trigger_technology || '',
+    'Oferta recomendada':   l.recommended_offer || '',
+    'Por qué':              l.offering_rationale || ''
   }));
   const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [22,12,14,20,8,24,30,44].map(w=>({wch:w}));
+  ws['!cols'] = [22,20,8,12,20,6,18,10,12,10,22,18,28,14,30,30,18,30,40].map(w=>({wch:w}));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Leads');
   XLSX.writeFile(wb, `WestTelco_${pName||'partner'}_${pPeriod||'reporte'}.xlsx`.replace(/\s+/g,'_'));
