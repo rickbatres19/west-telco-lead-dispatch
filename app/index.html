@@ -685,7 +685,14 @@
     input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--blue); cursor: pointer; }
 
     /* ===== HISTORY ===== */
-    .expand-btn {
+    .sortable {
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .sortable:hover { color: var(--cyan); }
+    .sort-icon { font-size: 10px; opacity: 0.5; margin-left: 3px; }
+    .sortable.asc .sort-icon, .sortable.desc .sort-icon { opacity: 1; color: var(--cyan); }
       background: none;
       border: none;
       color: var(--blue);
@@ -816,9 +823,18 @@
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Empresa</th><th>País</th><th>Producto</th><th>Score</th>
-            <th>Estado</th><th>Contacto</th><th>Cargo</th><th>Depto</th>
-            <th>LinkedIn</th><th>Email</th><th>Teléfono</th><th>Asignado a</th>
+            <th class="sortable" onclick="sortAll('company_name')">Empresa <span class="sort-icon" id="si-company_name">⇅</span></th>
+            <th class="sortable" onclick="sortAll('country')">País <span class="sort-icon" id="si-country">⇅</span></th>
+            <th class="sortable" onclick="sortAll('west_telco_product')">Producto <span class="sort-icon" id="si-west_telco_product">⇅</span></th>
+            <th class="sortable" onclick="sortAll('priority_score')">Score <span class="sort-icon" id="si-priority_score">↓</span></th>
+            <th class="sortable" onclick="sortAll('enrichment_status')">Estado <span class="sort-icon" id="si-enrichment_status">⇅</span></th>
+            <th>Contacto</th>
+            <th class="sortable" onclick="sortAll('contact_position')">Cargo <span class="sort-icon" id="si-contact_position">⇅</span></th>
+            <th>Depto</th>
+            <th>LinkedIn</th>
+            <th>Email</th>
+            <th>Teléfono</th>
+            <th class="sortable" onclick="sortAll('assigned_to_partner')">Asignado a <span class="sort-icon" id="si-assigned_to_partner">⇅</span></th>
           </tr></thead>
           <tbody id="all-tbody"><tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando leads...</div></td></tr></tbody>
         </table>
@@ -886,9 +902,18 @@
         <table>
           <thead><tr>
             <th style="width:36px"><input type="checkbox" id="r-check-all" onchange="toggleAllReport(this.checked)"/></th>
-            <th>Empresa</th><th>País</th><th>Producto</th><th>Score</th>
-            <th>Contacto</th><th>Cargo</th><th>Depto</th>
-            <th>LinkedIn</th><th>Email</th><th>Teléfono</th><th>Fuentes</th><th>Estado</th>
+            <th class="sortable" onclick="sortReport('company_name')">Empresa <span class="sort-icon" id="rsi-company_name">⇅</span></th>
+            <th class="sortable" onclick="sortReport('country')">País <span class="sort-icon" id="rsi-country">⇅</span></th>
+            <th class="sortable" onclick="sortReport('west_telco_product')">Producto <span class="sort-icon" id="rsi-west_telco_product">⇅</span></th>
+            <th class="sortable" onclick="sortReport('priority_score')">Score <span class="sort-icon" id="rsi-priority_score">↓</span></th>
+            <th>Contacto</th>
+            <th class="sortable" onclick="sortReport('contact_position')">Cargo <span class="sort-icon" id="rsi-contact_position">⇅</span></th>
+            <th>Depto</th>
+            <th>LinkedIn</th>
+            <th>Email</th>
+            <th>Teléfono</th>
+            <th>Fuentes</th>
+            <th class="sortable" onclick="sortReport('assigned_to_partner')">Estado <span class="sort-icon" id="rsi-assigned_to_partner">⇅</span></th>
           </tr></thead>
           <tbody id="report-tbody"><tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr></tbody>
         </table>
@@ -1005,7 +1030,7 @@ async function loadAllLeads(page = 1) {
   document.getElementById('all-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
   const { data, count } = await sb.from('builtwith_company_targets')
     .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,assigned_to_partner,assigned_at,enrichment_status', { count: 'exact' })
-    .order('priority_score', { ascending: false })
+    .order(allSortCol, { ascending: allSortDir === 'asc', nullsFirst: false })
     .range(from, to);
   allLeads = data || [];
   filteredAll = [...allLeads];
@@ -1043,15 +1068,13 @@ async function loadAllLeadsFiltered(page = 1) {
   if (stat === 'no')  q = q.is('assigned_to_partner', null);
   if (srch)   q = q.ilike('company_name', `%${srch}%`);
 
-  q = q.range(from, to);
+  q = q.order(allSortCol, { ascending: allSortDir === 'asc', nullsFirst: false }).range(from, to);
   const { data, count } = await q;
   allLeads = data || [];
   filteredAll = [...allLeads];
   allTotal = count || 0;
   renderAllTable();
 }
-
-function renderAllTable() {
   const rows = filteredAll; // data already paginated server-side
   const tbody = document.getElementById('all-tbody');
   if (!rows.length) { tbody.innerHTML = '<tr><td colspan="12"><div class="empty">Sin resultados con estos filtros</div></td></tr>'; document.getElementById('all-pag').style.display='none'; return; }
@@ -1114,7 +1137,7 @@ async function loadReportLeads(page = 1) {
     .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,offering_rationale,assigned_to_partner', { count: 'exact' })
     .eq('enrichment_status','ready')
     .not('first_contact_email', 'is', null)
-    .order('priority_score', { ascending: false })
+    .order(repSortCol, { ascending: repSortDir === 'asc', nullsFirst: false })
     .range(from, to);
   reportLeads = data || [];
   filteredReport = [...reportLeads];
@@ -1140,7 +1163,7 @@ async function loadReportLeadsFiltered(page = 1) {
     .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,offering_rationale,assigned_to_partner', { count: 'exact' })
     .eq('enrichment_status','ready')
     .not('first_contact_email', 'is', null)
-    .order('priority_score', { ascending: false });
+    .order(repSortCol, { ascending: repSortDir === 'asc', nullsFirst: false });
 
   if (prod) q = q.eq('west_telco_product', prod);
   if (terr) q = q.eq('territory', terr);
@@ -1373,6 +1396,33 @@ function toast(msg, type='i') {
   t.textContent=msg;
   c.appendChild(t);
   setTimeout(()=>t.remove(),4500);
+}
+
+// ===== SORT =====
+let allSortCol = 'priority_score', allSortDir = 'desc';
+let repSortCol = 'priority_score', repSortDir = 'desc';
+
+function sortAll(col) {
+  if (allSortCol === col) allSortDir = allSortDir === 'asc' ? 'desc' : 'asc';
+  else { allSortCol = col; allSortDir = 'asc'; }
+  updateSortIcons('si-', allSortCol, allSortDir);
+  loadAllLeadsFiltered(1);
+}
+
+function sortReport(col) {
+  if (repSortCol === col) repSortDir = repSortDir === 'asc' ? 'desc' : 'asc';
+  else { repSortCol = col; repSortDir = 'asc'; }
+  updateSortIcons('rsi-', repSortCol, repSortDir);
+  loadReportLeadsFiltered(1);
+}
+
+function updateSortIcons(prefix, col, dir) {
+  document.querySelectorAll('.sortable').forEach(el => el.classList.remove('asc','desc'));
+  const icon = document.getElementById(prefix + col);
+  if (icon) {
+    icon.textContent = dir === 'asc' ? '↑' : '↓';
+    icon.closest('th')?.classList.add(dir);
+  }
 }
 
 init();
