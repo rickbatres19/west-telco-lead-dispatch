@@ -1193,8 +1193,16 @@ function renderAllTable() {
         </div>`
       : '<span style="color:var(--text3);font-size:11px">—</span>';
 
-    return `<tr class="row">
-      <td class="company" style="${nameStyle}" title="${l.canonical_domain||''}">${displayName}</td>
+    return `<tr class="row" id="row-${l.id}">
+      <td class="company" style="${nameStyle}">
+        <div style="display:flex;align-items:center;gap:6px">
+          <button onclick="toggleContacts('${l.canonical_domain}',${l.id})" 
+            id="btn-${l.id}"
+            style="background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);color:var(--cyan);width:18px;height:18px;border-radius:3px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0"
+            title="Ver contactos enriquecidos">+</button>
+          <span title="${l.canonical_domain||''}">${displayName}</span>
+        </div>
+      </td>
       <td>${l.country||'—'}</td>
       <td><span class="tag ${tc}">${l.west_telco_product||'—'}</span></td>
       <td><span class="score ${sc}">${s}</span></td>
@@ -1210,6 +1218,13 @@ function renderAllTable() {
       <td style="font-size:11px;white-space:nowrap">${l.first_contact_phone ? `<a href="tel:${l.first_contact_phone}" style="color:var(--cyan);text-decoration:none">${l.first_contact_phone}</a>` : '<span style="color:var(--text3)">—</span>'}</td>
       <td>${porQue}</td>
       <td>${asgn}</td>
+    </tr>
+    <tr id="contacts-${l.id}" style="display:none">
+      <td colspan="16" style="padding:0;background:rgba(0,212,255,0.03);border-bottom:1px solid var(--border)">
+        <div id="contacts-inner-${l.id}" style="padding:12px 20px 12px 44px">
+          <div class="loading" style="padding:8px 0"><div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Cargando contactos...</div>
+        </div>
+      </td>
     </tr>`;
   }).join('');
   renderPag('all', allTotal, allPage, p => { loadAllLeadsFiltered(p); });
@@ -1311,9 +1326,17 @@ function renderReportTable() {
       <td></td>
     </tr>`;
 
-    return `<tr class="row ${reportSelected.has(l.id)?'selected':''}" onclick="toggleR(${l.id},event)">
+    return `<tr class="row ${reportSelected.has(l.id)?'selected':''}" id="rrow-${l.id}" onclick="toggleR(${l.id},event)">
       <td style="text-align:center"><input type="checkbox" ${chk} onclick="toggleR(${l.id},event)"/></td>
-      <td class="company" style="${nameStyleR}" title="${l.canonical_domain||''}">${displayNameR}</td>
+      <td class="company" style="${nameStyleR}">
+        <div style="display:flex;align-items:center;gap:6px">
+          <button onclick="event.stopPropagation();toggleContacts('${l.canonical_domain}',${l.id},'r')"
+            id="rbtn-${l.id}"
+            style="background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);color:var(--cyan);width:18px;height:18px;border-radius:3px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0"
+            title="Ver contactos enriquecidos">+</button>
+          <span title="${l.canonical_domain||''}">${displayNameR}</span>
+        </div>
+      </td>
       <td>${l.country||'—'}</td>
       <td><span class="tag ${tc}">${l.west_telco_product||'—'}</span></td>
       <td><span class="score ${sc}">${s}</span></td>
@@ -1328,6 +1351,13 @@ function renderReportTable() {
       <td>${phone}</td>
       <td>${porQueR}</td>
       <td><span style="color:var(--green);font-size:10px">● disponible</span></td>
+    </tr>
+    <tr id="rcontacts-${l.id}" style="display:none">
+      <td colspan="17" style="padding:0;background:rgba(0,212,255,0.03);border-bottom:1px solid var(--border)">
+        <div id="rcontacts-inner-${l.id}" style="padding:12px 20px 12px 60px">
+          <div class="loading" style="padding:8px 0"><div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Cargando contactos...</div>
+        </div>
+      </td>
     </tr>`;
   }).join('');
   updateRUI();
@@ -1595,6 +1625,81 @@ function showView(v) {
   set('view-title', titles[v]);
   if (v==='report' && reportLeads.length===0) loadReportLeads(1);
   if (v==='history') loadHistory();
+}
+
+// ===== CONTACTS PANEL =====
+const contactsCache = {};
+
+async function toggleContacts(domain, rowId, prefix = '') {
+  const panelId = prefix ? `rcontacts-${rowId}` : `contacts-${rowId}`;
+  const innerId = prefix ? `rcontacts-inner-${rowId}` : `contacts-inner-${rowId}`;
+  const btnId   = prefix ? `rbtn-${rowId}` : `btn-${rowId}`;
+  const panel   = document.getElementById(panelId);
+  const btn     = document.getElementById(btnId);
+  if (!panel) return;
+
+  const isOpen = panel.style.display !== 'none';
+  if (isOpen) {
+    panel.style.display = 'none';
+    if (btn) btn.textContent = '+';
+    return;
+  }
+
+  panel.style.display = 'table-row';
+  if (btn) btn.textContent = '−';
+
+  // Si ya está en caché, solo renderiza
+  if (contactsCache[domain]) {
+    document.getElementById(innerId).innerHTML = renderContactsPanel(contactsCache[domain], domain);
+    return;
+  }
+
+  // Fetch desde Supabase
+  const { data } = await sb.from('target_contacts')
+    .select('full_name,job_title,seniority,email,phone,linkedin_url,relevant_for_products,relevance_score,is_primary,source')
+    .eq('canonical_domain', domain)
+    .order('relevance_score', { ascending: false })
+    .order('is_primary', { ascending: false });
+
+  contactsCache[domain] = data || [];
+  document.getElementById(innerId).innerHTML = renderContactsPanel(contactsCache[domain], domain);
+}
+
+function renderContactsPanel(contacts, domain) {
+  if (!contacts.length) {
+    return `<div style="font-size:11px;color:var(--text3);padding:4px 0">
+      Sin contactos enriquecidos aún — 
+      <span style="color:var(--cyan)">pendiente Apollo</span>
+    </div>`;
+  }
+
+  const senIcon = s => s==='c_suite'?'👑':s==='vp'?'⭐':s==='director'?'◆':s==='manager'?'◇':'·';
+  const scoreColor = sc => sc>=90?'var(--green)':sc>=50?'var(--orange)':'var(--text3)';
+
+  return `<div>
+    <div style="font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">
+      ${contacts.length} contacto${contacts.length>1?'s':''} enriquecido${contacts.length>1?'s':''}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      ${contacts.map(c => `
+        <div style="background:var(--navy3);border:1px solid ${c.is_primary?'rgba(0,212,255,0.3)':'var(--border)'};border-radius:8px;padding:10px 14px;min-width:220px;max-width:280px;position:relative">
+          ${c.is_primary ? `<span style="position:absolute;top:6px;right:8px;font-size:9px;background:rgba(0,212,255,0.12);color:var(--cyan);padding:1px 6px;border-radius:3px;font-weight:600">PRIMARIO</span>` : ''}
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;padding-right:60px">${c.full_name||'—'}</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">${senIcon(c.seniority)} ${c.job_title||'—'}</div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            ${c.email ? `<div style="font-size:10px;color:var(--cyan)">✉ <a href="mailto:${c.email}" style="color:var(--cyan);text-decoration:none">${c.email}</a></div>` : ''}
+            ${c.phone ? `<div style="font-size:10px;color:var(--text2)">📞 ${c.phone}</div>` : ''}
+            ${c.linkedin_url ? `<div style="font-size:10px"><a href="${c.linkedin_url}" target="_blank" style="color:#4da0ff;text-decoration:none">🔗 LinkedIn</a></div>` : ''}
+          </div>
+          ${c.relevant_for_products?.length ? `
+          <div style="margin-top:7px;display:flex;flex-wrap:wrap;gap:3px">
+            ${c.relevant_for_products.map(p => `<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(255,255,255,0.05);color:var(--text3)">${p}</span>`).join('')}
+          </div>` : ''}
+          <div style="margin-top:5px;font-size:9px;color:var(--text3)">Score: <span style="color:${scoreColor(c.relevance_score)};font-weight:600">${c.relevance_score}</span> · ${c.source}</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
 }
 
 init();
