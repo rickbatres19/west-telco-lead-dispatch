@@ -475,10 +475,11 @@
       white-space: nowrap;
     }
 
-    .tag.zoom    { background: rgba(0,102,255,0.12); color: #4da0ff; border: 1px solid rgba(0,102,255,0.2); }
-    .tag.xcally  { background: rgba(255,59,92,0.10); color: #ff6b8a; border: 1px solid rgba(255,59,92,0.2); }
-    .tag.edb     { background: rgba(0,212,255,0.10); color: var(--cyan); border: 1px solid rgba(0,212,255,0.2); }
-    .tag.dropbox { background: rgba(0,229,160,0.10); color: var(--green); border: 1px solid rgba(0,229,160,0.2); }
+    .tag.zoom       { background: rgba(0,102,255,0.12); color: #4da0ff; border: 1px solid rgba(0,102,255,0.2); }
+    .tag.xcally     { background: rgba(255,59,92,0.10); color: #ff6b8a; border: 1px solid rgba(255,59,92,0.2); }
+    .tag.edb        { background: rgba(0,212,255,0.10); color: var(--cyan); border: 1px solid rgba(0,212,255,0.2); }
+    .tag.dropbox    { background: rgba(0,229,160,0.10); color: var(--green); border: 1px solid rgba(0,229,160,0.2); }
+    .tag.solarwinds { background: rgba(255,140,0,0.10); color: var(--orange); border: 1px solid rgba(255,140,0,0.2); }
 
     /* Assigned badge */
     .asgn-badge {
@@ -589,11 +590,11 @@
       gap: 8px;
       padding: 10px 16px;
       border-bottom: 1px solid var(--border);
-      justify-content: space-between;
+      justify-content: flex-start;
       background: var(--navy3);
     }
 
-    .page-info { font-size: 11px; color: var(--text3); }
+    .page-info { font-size: 11px; color: var(--text3); margin-right: 8px; }
     .page-btns { display: flex; gap: 4px; }
 
     .page-btn {
@@ -857,7 +858,7 @@
       <div class="filter-bar">
         <select id="af-product" onchange="filterAll()">
           <option value="">Todos los productos</option>
-          <option>Zoom</option><option>Xcally</option><option>EDB</option><option>Dropbox</option>
+          <option>Zoom</option><option>Xcally</option><option>EDB</option><option>Dropbox</option><option>Solarwinds</option>
         </select>
         <select id="af-territory" onchange="filterAll()">
           <option value="">Todos los territorios</option>
@@ -936,7 +937,7 @@
       <div class="filter-bar">
         <select id="rf-product" onchange="filterReport()">
           <option value="">Todos los productos</option>
-          <option>Zoom</option><option>Xcally</option><option>EDB</option><option>Dropbox</option>
+          <option>Zoom</option><option>Xcally</option><option>EDB</option><option>Dropbox</option><option>Solarwinds</option>
         </select>
         <select id="rf-territory" onchange="filterReport()">
           <option value="">Todos los territorios</option>
@@ -1468,7 +1469,7 @@ async function toggleLeads(rid, btn) {
 // ===== HELPERS =====
 function tagClass(p) {
   const pr = (p||'').toLowerCase();
-  return pr.includes('zoom')?'zoom':pr.includes('xcally')?'xcally':pr.includes('edb')?'edb':'dropbox';
+  return pr.includes('zoom')?'zoom':pr.includes('xcally')?'xcally':pr.includes('edb')?'edb':pr.includes('solar')?'solarwinds':'dropbox';
 }
 
 function renderPag(prefix, total, current, cb) {
