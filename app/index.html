@@ -902,15 +902,12 @@
             <th class="sortable" onclick="sortAll('company_employees')">Empleados <span class="sort-icon" id="si-company_employees">⇅</span></th>
             <th>Revenue</th>
             <th>Tech Spend</th>
-            <th>Contacto</th>
-            <th class="sortable" onclick="sortAll('contact_position')">Cargo <span class="sort-icon" id="si-contact_position">⇅</span></th>
-            <th>LinkedIn</th>
             <th>Email</th>
             <th>Teléfono</th>
             <th>Por qué / Oferta</th>
             <th class="sortable" onclick="sortAll('assigned_to_partner')">Asignado a <span class="sort-icon" id="si-assigned_to_partner">⇅</span></th>
           </tr></thead>
-          <tbody id="all-tbody"><tr><td colspan="16"><div class="loading"><div class="spinner"></div> Cargando leads...</div></td></tr></tbody>
+          <tbody id="all-tbody"><tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando leads...</div></td></tr></tbody>
         </table>
         <div class="pagination" id="all-pag-bottom" style="display:none">
           <span class="page-info" id="all-pinfo-bottom"></span>
@@ -988,15 +985,12 @@
             <th class="sortable" onclick="sortReport('company_employees')">Empleados <span class="sort-icon" id="rsi-company_employees">⇅</span></th>
             <th>Revenue</th>
             <th>Tech Spend</th>
-            <th>Contacto</th>
-            <th class="sortable" onclick="sortReport('contact_position')">Cargo <span class="sort-icon" id="rsi-contact_position">⇅</span></th>
-            <th>LinkedIn</th>
             <th>Email</th>
             <th>Teléfono</th>
             <th>Por qué / Oferta</th>
             <th class="sortable" onclick="sortReport('assigned_to_partner')">Estado <span class="sort-icon" id="rsi-assigned_to_partner">⇅</span></th>
           </tr></thead>
-          <tbody id="report-tbody"><tr><td colspan="16"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr></tbody>
+          <tbody id="report-tbody"><tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr></tbody>
         </table>
         <div class="pagination" id="r-pag-bottom" style="display:none">
           <span class="page-info" id="r-pinfo-bottom"></span>
@@ -1196,7 +1190,7 @@ function renderAllTable() {
     return `<tr class="row" id="row-${l.id}">
       <td class="company" style="${nameStyle}">
         <div style="display:flex;align-items:center;gap:6px">
-          <button onclick="toggleContacts('${l.canonical_domain}',${l.id})" 
+          <button onclick="toggleContacts('${l.canonical_domain}',${l.id})"
             id="btn-${l.id}"
             style="background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);color:var(--cyan);width:18px;height:18px;border-radius:3px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0"
             title="Ver contactos enriquecidos">+</button>
@@ -1211,16 +1205,13 @@ function renderAllTable() {
       <td style="font-size:11px;color:var(--text2)">${l.company_employees||'—'}</td>
       <td style="font-size:11px;color:var(--text2)">${l.company_revenue||'—'}</td>
       <td style="font-size:11px;color:var(--green)">${l.company_tech_spend||'—'}</td>
-      <td style="font-size:11px;color:var(--text)">${l.first_contact_name||'—'}</td>
-      <td style="font-size:11px;color:var(--text2);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${l.contact_position||''}">${l.contact_position||'—'}</td>
-      <td>${liBtn}</td>
       <td class="email-td">${l.first_contact_email||'—'}</td>
       <td style="font-size:11px;white-space:nowrap">${l.first_contact_phone ? `<a href="tel:${l.first_contact_phone}" style="color:var(--cyan);text-decoration:none">${l.first_contact_phone}</a>` : '<span style="color:var(--text3)">—</span>'}</td>
       <td>${porQue}</td>
       <td>${asgn}</td>
     </tr>
     <tr id="contacts-${l.id}" style="display:none">
-      <td colspan="16" style="padding:0;background:rgba(0,212,255,0.03);border-bottom:1px solid var(--border)">
+      <td colspan="13" style="padding:0;background:rgba(0,212,255,0.03);border-bottom:1px solid var(--border)">
         <div id="contacts-inner-${l.id}" style="padding:12px 20px 12px 44px">
           <div class="loading" style="padding:8px 0"><div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Cargando contactos...</div>
         </div>
@@ -1285,7 +1276,7 @@ async function loadReportLeadsFiltered(page = 1) {
 function renderReportTable() {
   const rows = filteredReport;
   const tbody = document.getElementById('report-tbody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="14"><div class="empty">Sin leads disponibles</div></td></tr>'; document.getElementById('r-pag').style.display='none'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="13"><div class="empty">Sin leads disponibles</div></td></tr>'; document.getElementById('r-pag').style.display='none'; return; }
   tbody.innerHTML = rows.map(l => {
     const s = l.priority_score||0;
     const sc = s>=35?'h':s>=20?'m':'l';
@@ -1322,7 +1313,7 @@ function renderReportTable() {
       <td style="opacity:.5">${l.country||'—'}</td>
       <td><span class="tag ${tc}" style="opacity:.4">${l.west_telco_product||'—'}</span></td>
       <td><span class="score ${sc}" style="opacity:.4">${s}</span></td>
-      <td colspan="10" style="opacity:.5"><span class="asgn-badge">⬡ ${l.assigned_to_partner}</span></td>
+      <td colspan="7" style="opacity:.5"><span class="asgn-badge">⬡ ${l.assigned_to_partner}</span></td>
       <td></td>
     </tr>`;
 
@@ -1344,16 +1335,13 @@ function renderReportTable() {
       <td style="font-size:11px;color:var(--text2)">${l.company_employees||'—'}</td>
       <td style="font-size:11px;color:var(--text2)">${l.company_revenue||'—'}</td>
       <td style="font-size:11px;color:var(--green)">${l.company_tech_spend||'—'}</td>
-      <td style="font-size:11px;color:var(--text)">${l.first_contact_name||'—'}</td>
-      <td style="font-size:11px;color:var(--text2);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${l.contact_position||''}">${l.contact_position||'—'}</td>
-      <td>${liBtn}</td>
       <td class="email-td">${l.first_contact_email||'—'}</td>
       <td>${phone}</td>
       <td>${porQueR}</td>
       <td><span style="color:var(--green);font-size:10px">● disponible</span></td>
     </tr>
     <tr id="rcontacts-${l.id}" style="display:none">
-      <td colspan="17" style="padding:0;background:rgba(0,212,255,0.03);border-bottom:1px solid var(--border)">
+      <td colspan="13" style="padding:0;background:rgba(0,212,255,0.03);border-bottom:1px solid var(--border)">
         <div id="rcontacts-inner-${l.id}" style="padding:12px 20px 12px 60px">
           <div class="loading" style="padding:8px 0"><div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Cargando contactos...</div>
         </div>
