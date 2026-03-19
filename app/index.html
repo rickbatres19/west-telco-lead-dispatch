@@ -973,35 +973,36 @@ const SB_URL = 'https://mjrsvivaowhnkfumsahc.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qcnN2aXZhb3dobmtmdW1zYWhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTY0MTgsImV4cCI6MjA4NzY5MjQxOH0.Phvs-QyMc-xrxsBO7FRa9nAVmDoSiR_dJ3GdW015PKo';
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
-let allLeads = [], filteredAll = [], allPage = 1;
-let reportLeads = [], filteredReport = [], reportPage = 1;
+// State
+let allLeads = [], filteredAll = [], allPage = 1, allTotal = 0;
+let reportLeads = [], filteredReport = [], reportPage = 1, reportTotal = 0;
 let reportSelected = new Set();
+let allFilters = {};
+let allSortCol = 'priority_score', allSortDir = 'desc';
+let repSortCol = 'priority_score', repSortDir = 'desc';
 const PAGE = 50;
 
 async function init() {
   await loadStats();
-  await loadAllLeads();
+  await loadAllLeads(1);
 }
 
 async function loadStats() {
-  const { data } = await sb.from('builtwith_company_targets')
-    .select('enrichment_status, assigned_to_partner, first_contact_email')
-    .limit(30000);
-  if (!data) return;
-  const total    = data.length;
-  const enriched = data.filter(r => r.enrichment_status === 'ready' && r.first_contact_email).length;
-  const pending  = data.filter(r => r.enrichment_status !== 'ready').length;
-  const assigned = data.filter(r => r.assigned_to_partner).length;
-  const available = enriched - assigned;
-  set('sm-ready',    enriched.toLocaleString());
-  set('sm-pending',  pending.toLocaleString());
-  set('sm-assigned', assigned.toLocaleString());
-  set('sm-available',available.toLocaleString());
-  set('cv-ready',    total.toLocaleString());
-  set('cv-enriched', enriched.toLocaleString());
-  set('cv-pending',  pending.toLocaleString());
-  set('cv-assigned', assigned.toLocaleString());
-  set('nb-all',      total.toLocaleString());
+  try {
+    const { data, error } = await sb.rpc('get_lead_stats');
+    if (error || !data) return;
+    const s = typeof data === 'string' ? JSON.parse(data) : data;
+    const available = (s.enriched || 0) - (s.assigned || 0);
+    set('sm-ready',    (s.enriched||0).toLocaleString());
+    set('sm-pending',  (s.pending||0).toLocaleString());
+    set('sm-assigned', (s.assigned||0).toLocaleString());
+    set('sm-available',available.toLocaleString());
+    set('cv-ready',    (s.total||0).toLocaleString());
+    set('cv-enriched', (s.enriched||0).toLocaleString());
+    set('cv-pending',  (s.pending||0).toLocaleString());
+    set('cv-assigned', (s.assigned||0).toLocaleString());
+    set('nb-all',      (s.total||0).toLocaleString());
+  } catch(e) { console.error('loadStats error:', e); }
 }
 
 function set(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
@@ -1017,13 +1018,7 @@ function showView(v) {
   if (v==='history') loadHistory();
 }
 
-async function init() {
-  await loadStats();
-  await loadAllLeads(1);
-}
-
 // ===== VIEW 1 =====
-let allTotal = 0;
 async function loadAllLeads(page = 1) {
   allPage = page;
   const from = (page-1)*PAGE, to = from+PAGE-1;
@@ -1044,7 +1039,6 @@ function filterAll() {
   loadAllLeadsFiltered();
 }
 
-let allFilters = {};
 async function loadAllLeadsFiltered(page = 1) {
   allPage = page;
   const prod = document.getElementById('af-product').value;
@@ -1058,8 +1052,7 @@ async function loadAllLeadsFiltered(page = 1) {
   document.getElementById('all-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
 
   let q = sb.from('builtwith_company_targets')
-    .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,assigned_to_partner,assigned_at,enrichment_status', { count: 'exact' })
-    .order('priority_score', { ascending: false });
+    .select('id,company_name,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,contact_seniority,contact_linkedin_url,enrichment_sources,assigned_to_partner,assigned_at,enrichment_status', { count: 'exact' });
 
   if (prod)   q = q.eq('west_telco_product', prod);
   if (terr)   q = q.eq('territory', terr);
@@ -1128,7 +1121,6 @@ async function loadAllLeadsFiltered(page = 1) {
 }
 
 // ===== VIEW 2 =====
-let reportTotal = 0;
 async function loadReportLeads(page = 1) {
   reportPage = page;
   const from = (page-1)*PAGE, to = from+PAGE-1;
@@ -1399,9 +1391,6 @@ function toast(msg, type='i') {
 }
 
 // ===== SORT =====
-let allSortCol = 'priority_score', allSortDir = 'desc';
-let repSortCol = 'priority_score', repSortDir = 'desc';
-
 function sortAll(col) {
   if (allSortCol === col) allSortDir = allSortDir === 'asc' ? 'desc' : 'asc';
   else { allSortCol = col; allSortDir = 'asc'; }
