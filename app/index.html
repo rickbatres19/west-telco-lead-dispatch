@@ -594,6 +594,11 @@
       background: var(--navy3);
     }
 
+    [id$="-pag-bottom"] {
+      border-bottom: none;
+      border-top: 1px solid var(--border);
+    }
+
     .page-info { font-size: 11px; color: var(--text3); margin-right: 8px; }
     .page-btns { display: flex; gap: 4px; }
 
@@ -907,6 +912,10 @@
           </tr></thead>
           <tbody id="all-tbody"><tr><td colspan="16"><div class="loading"><div class="spinner"></div> Cargando leads...</div></td></tr></tbody>
         </table>
+        <div class="pagination" id="all-pag-bottom" style="display:none">
+          <span class="page-info" id="all-pinfo-bottom"></span>
+          <div class="page-btns" id="all-pbtns-bottom"></div>
+        </div>
       </div>
     </div>
 
@@ -989,6 +998,10 @@
           </tr></thead>
           <tbody id="report-tbody"><tr><td colspan="16"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr></tbody>
         </table>
+        <div class="pagination" id="r-pag-bottom" style="display:none">
+          <span class="page-info" id="r-pinfo-bottom"></span>
+          <div class="page-btns" id="r-pbtns-bottom"></div>
+        </div>
       </div>
 
       <div class="action-bar">
@@ -1474,21 +1487,45 @@ function tagClass(p) {
 
 function renderPag(prefix, total, current, cb) {
   const pages = Math.ceil(total/PAGE);
-  const pag = document.getElementById(prefix+'-pag');
-  const info = document.getElementById(prefix+'-pinfo');
-  const btns = document.getElementById(prefix+'-pbtns');
-  if (!pag) return;
-  if (pages<=1) { pag.style.display='none'; return; }
-  pag.style.display='flex';
-  const s=(current-1)*PAGE+1, e=Math.min(current*PAGE,total);
-  info.textContent=`Mostrando ${s}–${e} de ${total.toLocaleString()}`;
   const cbStr = cb.toString();
-  let html=`<button class="page-btn" ${current===1?'disabled':''} onclick="(${cbStr})(${current-1});window.scrollTo(0,0)">‹</button>`;
-  for(let i=Math.max(1,current-2);i<=Math.min(pages,current+2);i++) {
-    html+=`<button class="page-btn ${i===current?'active':''}" onclick="(${cbStr})(${i});window.scrollTo(0,0)">${i}</button>`;
+
+  function buildHtml() {
+    const s=(current-1)*PAGE+1, e=Math.min(current*PAGE,total);
+    let btns = `<button class="page-btn" ${current===1?'disabled':''} onclick="(${cbStr})(${current-1});window.scrollTo(0,0)">‹</button>`;
+    for(let i=Math.max(1,current-2);i<=Math.min(pages,current+2);i++) {
+      btns+=`<button class="page-btn ${i===current?'active':''}" onclick="(${cbStr})(${i});window.scrollTo(0,0)">${i}</button>`;
+    }
+    btns+=`<button class="page-btn" ${current===pages?'disabled':''} onclick="(${cbStr})(${current+1});window.scrollTo(0,0)">›</button>`;
+    return { info: `Mostrando ${s}–${e} de ${total.toLocaleString()}`, btns };
   }
-  html+=`<button class="page-btn" ${current===pages?'disabled':''} onclick="(${cbStr})(${current+1});window.scrollTo(0,0)">›</button>`;
-  btns.innerHTML=html;
+
+  // Top pagination
+  const pagTop = document.getElementById(prefix+'-pag');
+  if (pagTop) {
+    if (pages<=1) { pagTop.style.display='none'; }
+    else {
+      pagTop.style.display='flex';
+      const { info, btns } = buildHtml();
+      const infoEl = document.getElementById(prefix+'-pinfo');
+      const btnsEl = document.getElementById(prefix+'-pbtns');
+      if (infoEl) infoEl.textContent = info;
+      if (btnsEl) btnsEl.innerHTML = btns;
+    }
+  }
+
+  // Bottom pagination
+  const pagBot = document.getElementById(prefix+'-pag-bottom');
+  if (pagBot) {
+    if (pages<=1) { pagBot.style.display='none'; }
+    else {
+      pagBot.style.display='flex';
+      const { info, btns } = buildHtml();
+      const infoEl = document.getElementById(prefix+'-pinfo-bottom');
+      const btnsEl = document.getElementById(prefix+'-pbtns-bottom');
+      if (infoEl) infoEl.textContent = info;
+      if (btnsEl) btnsEl.innerHTML = btns;
+    }
+  }
 }
 
 function toast(msg, type='i') {
