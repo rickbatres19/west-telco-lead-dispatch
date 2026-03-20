@@ -1648,7 +1648,7 @@ async function toggleContacts(domain, rowId, prefix = '') {
 
   // Fetch desde Supabase
   const { data } = await sb.from('target_contacts')
-    .select('full_name,job_title,seniority,email,phone,linkedin_url,relevant_for_products,relevance_score,is_primary,source')
+    .select('full_name,job_title,seniority,email,email_confidence,phone,linkedin_url,relevant_for_products,relevance_score,is_primary,source')
     .eq('canonical_domain', domain)
     .order('relevance_score', { ascending: false })
     .order('is_primary', { ascending: false });
@@ -1679,7 +1679,15 @@ function renderContactsPanel(contacts, domain) {
           <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;padding-right:60px">${c.full_name||'—'}</div>
           <div style="font-size:11px;color:var(--text2);margin-bottom:6px">${senIcon(c.seniority)} ${c.job_title||'—'}</div>
           <div style="display:flex;flex-direction:column;gap:3px">
-            ${c.email ? `<div style="font-size:10px;color:var(--cyan)">✉ <a href="mailto:${c.email}" style="color:var(--cyan);text-decoration:none">${c.email}</a></div>` : ''}
+            ${(c.email && c.email_confidence !== 'inferred')
+              ? `<div style="font-size:10px;color:var(--cyan);display:flex;align-items:center;gap:4px">
+                  ✉ <a href="mailto:${c.email}" style="color:var(--cyan);text-decoration:none">${c.email}</a>
+                  ${c.email_confidence === 'verified'
+                    ? `<span title="Email verificado en fuente directa" style="font-size:8px;background:rgba(0,212,255,0.15);color:var(--cyan);padding:1px 4px;border-radius:3px;font-weight:700">✓ VER</span>`
+                    : `<span title="Patrón de dominio comprobado" style="font-size:8px;background:rgba(80,200,80,0.15);color:#6ddd88;padding:1px 4px;border-radius:3px;font-weight:700">~ PAT</span>`}
+                </div>`
+              : `<div style="font-size:10px;color:var(--text3);font-style:italic">✉ Email no verificado</div>`
+            }
             ${c.phone ? `<div style="font-size:10px;color:var(--text2)">📞 ${c.phone}</div>` : ''}
             ${c.linkedin_url ? `<div style="font-size:10px"><a href="${c.linkedin_url}" target="_blank" style="color:#4da0ff;text-decoration:none">🔗 LinkedIn</a></div>` : ''}
           </div>
