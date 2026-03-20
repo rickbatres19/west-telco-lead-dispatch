@@ -797,14 +797,15 @@
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
       </svg>
-      Todos los leads
+      Universo de leads
       <span class="nav-badge" id="nb-all">—</span>
     </div>
     <div class="nav-item" onclick="showView('report')">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
       </svg>
-      Generar reporte
+      Leads calificados
+      <span class="nav-badge" id="nb-report" style="background:rgba(0,212,255,0.15);color:var(--cyan)">—</span>
     </div>
     <div class="nav-item" onclick="showView('history')">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -827,7 +828,7 @@
 <main class="main">
   <div class="topbar">
     <div class="topbar-left">
-      <span class="topbar-title" id="view-title">Todos los leads</span>
+      <span class="topbar-title" id="view-title">Universo de leads</span>
       <div class="topbar-divider"></div>
       <span class="topbar-sub" id="topbar-sub"></span>
     </div>
@@ -907,7 +908,7 @@
             <th>Por qué / Oferta</th>
             <th class="sortable" onclick="sortAll('assigned_to_partner')">Asignado a <span class="sort-icon" id="si-assigned_to_partner">⇅</span></th>
           </tr></thead>
-          <tbody id="all-tbody"><tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando leads...</div></td></tr></tbody>
+          <tbody id="all-tbody"><tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando leads...</div></td></tr></tbody>
         </table>
         <div class="pagination" id="all-pag-bottom" style="display:none">
           <span class="page-info" id="all-pinfo-bottom"></span>
@@ -983,14 +984,13 @@
             <th class="sortable" onclick="sortReport('priority_score')">Score <span class="sort-icon" id="rsi-priority_score">↓</span></th>
             <th class="sortable" onclick="sortReport('company_vertical')">Industria <span class="sort-icon" id="rsi-company_vertical">⇅</span></th>
             <th class="sortable" onclick="sortReport('company_employees')">Empleados <span class="sort-icon" id="rsi-company_employees">⇅</span></th>
-            <th>Revenue</th>
             <th>Tech Spend</th>
             <th>Email</th>
             <th>Teléfono</th>
             <th>Por qué / Oferta</th>
             <th class="sortable" onclick="sortReport('assigned_to_partner')">Estado <span class="sort-icon" id="rsi-assigned_to_partner">⇅</span></th>
           </tr></thead>
-          <tbody id="report-tbody"><tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr></tbody>
+          <tbody id="report-tbody"><tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr></tbody>
         </table>
         <div class="pagination" id="r-pag-bottom" style="display:none">
           <span class="page-info" id="r-pinfo-bottom"></span>
@@ -1081,6 +1081,7 @@ async function loadStats() {
     set('cv-pending',  (s.pending||0).toLocaleString());
     set('cv-assigned', (s.assigned||0).toLocaleString());
     set('nb-all',      (s.total||0).toLocaleString());
+    set('nb-report',   reportCount.toLocaleString());
   } catch(e) { console.error('loadStats error:', e); }
 }
 
@@ -1148,7 +1149,7 @@ async function loadAllLeadsFiltered(page = 1) {
 function renderAllTable() {
   const rows = filteredAll; // data already paginated server-side
   const tbody = document.getElementById('all-tbody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="13"><div class="empty">Sin resultados con estos filtros</div></td></tr>'; document.getElementById('all-pag').style.display='none'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="12"><div class="empty">Sin resultados con estos filtros</div></td></tr>'; document.getElementById('all-pag').style.display='none'; return; }
   tbody.innerHTML = rows.map(l => {
     const s = l.priority_score||0;
     const sc = s>=35?'h':s>=20?'m':'l';
@@ -1213,7 +1214,7 @@ function renderAllTable() {
       <td>${asgn}</td>
     </tr>
     <tr id="contacts-${l.id}" style="display:none">
-      <td colspan="13" style="padding:0;background:rgba(0,212,255,0.03);border-bottom:1px solid var(--border)">
+      <td colspan="12" style="padding:0;background:rgba(0,212,255,0.03);border-bottom:1px solid var(--border)">
         <div id="contacts-inner-${l.id}" style="padding:12px 20px 12px 44px">
           <div class="loading" style="padding:8px 0"><div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Cargando contactos...</div>
         </div>
@@ -1227,7 +1228,7 @@ function renderAllTable() {
 async function loadReportLeads(page = 1) {
   reportPage = page;
   const from = (page-1)*PAGE, to = from+PAGE-1;
-  document.getElementById('report-tbody').innerHTML = `<tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr>`;
+  document.getElementById('report-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr>`;
   const { data, count } = await sb.from('v_report_leads')
     .select('*', { count: 'exact' })
     .order('priority_score', { ascending: false, nullsFirst: false })
@@ -1238,7 +1239,8 @@ async function loadReportLeads(page = 1) {
     first_contact_email: l.contact_email,
     first_contact_phone: l.contact_phone,
     domain_derived_name: l.company_name,
-    email_source:        l.email_confidence
+    email_source:        l.email_confidence,
+    company_tech_spend:  l.company_tech_spend
   }));
   filteredReport = [...reportLeads];
   reportTotal = count || 0;
@@ -1256,7 +1258,7 @@ async function loadReportLeadsFiltered(page = 1) {
   const score = document.getElementById('rf-score').value;
   const srch  = document.getElementById('rf-search').value.toLowerCase();
   const from = (page-1)*PAGE, to = from+PAGE-1;
-  document.getElementById('report-tbody').innerHTML = `<tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
+  document.getElementById('report-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
 
   let q = sb.from('v_report_leads')
     .select('*', { count: 'exact' })
@@ -1286,7 +1288,7 @@ async function loadReportLeadsFiltered(page = 1) {
 function renderReportTable() {
   const rows = filteredReport;
   const tbody = document.getElementById('report-tbody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="13"><div class="empty">Sin leads disponibles</div></td></tr>'; document.getElementById('r-pag').style.display='none'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="12"><div class="empty">Sin leads disponibles</div></td></tr>'; document.getElementById('r-pag').style.display='none'; return; }
   tbody.innerHTML = rows.map(l => {
     const s = l.priority_score||0;
     const sc = s>=35?'h':s>=20?'m':'l';
@@ -1343,7 +1345,6 @@ function renderReportTable() {
       <td><span class="score ${sc}">${s}</span></td>
       <td style="font-size:11px;color:var(--cyan)">${l.company_vertical && l.company_vertical !== 'Unknown' ? l.company_vertical : '—'}</td>
       <td style="font-size:11px;color:var(--text2)">${l.company_employees||'—'}</td>
-      <td style="font-size:11px;color:var(--text2)">${l.company_revenue||'—'}</td>
       <td style="font-size:11px;color:var(--green)">${l.company_tech_spend||'—'}</td>
       <td class="email-td">
         ${l.first_contact_email
@@ -1366,7 +1367,7 @@ function renderReportTable() {
       <td><span style="color:var(--green);font-size:10px">● disponible</span></td>
     </tr>
     <tr id="rcontacts-${l.id}" style="display:none">
-      <td colspan="13" style="padding:0;background:rgba(0,212,255,0.03);border-bottom:1px solid var(--border)">
+      <td colspan="12" style="padding:0;background:rgba(0,212,255,0.03);border-bottom:1px solid var(--border)">
         <div id="rcontacts-inner-${l.id}" style="padding:12px 20px 12px 60px">
           <div class="loading" style="padding:8px 0"><div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Cargando contactos...</div>
         </div>
@@ -1634,7 +1635,7 @@ function showView(v) {
     document.getElementById('view-'+n).style.display = n===v ? 'block' : 'none';
     document.querySelectorAll('.nav-item')[i].classList.toggle('active', n===v);
   });
-  const titles = { all:'Todos los leads', report:'Generar reporte', history:'Histórico de reportes' };
+  const titles = { all:'Universo de leads', report:'Leads calificados', history:'Histórico de reportes' };
   set('view-title', titles[v]);
   if (v==='report' && reportLeads.length===0) loadReportLeads(1);
   if (v==='history') loadHistory();
