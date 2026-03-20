@@ -1093,9 +1093,8 @@ async function loadAllLeads(page = 1) {
   const from = (page-1)*PAGE, to = from+PAGE-1;
   document.getElementById('all-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
   try {
-    const { data, count, error } = await sb.from('builtwith_company_targets')
+    const { data, count, error } = await sb.from('v_universo_pendientes')
       .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner,assigned_at,enrichment_status', { count: 'estimated' })
-      .eq('domain_valid', true)
       .order(allSortCol, { ascending: allSortDir === 'asc', nullsFirst: false })
       .range(from, to);
     if (error) throw error;
@@ -1126,9 +1125,8 @@ async function loadAllLeadsFiltered(page = 1) {
   const from = (page-1)*PAGE, to = from+PAGE-1;
   document.getElementById('all-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
 
-  let q = sb.from('builtwith_company_targets')
-    .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner,assigned_at,enrichment_status', { count: 'estimated' })
-    .eq('domain_valid', true);
+  let q = sb.from('v_universo_pendientes')
+    .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner,assigned_at,enrichment_status', { count: 'estimated' });
 
   if (prod)   q = q.eq('west_telco_product', prod);
   if (terr)   q = q.eq('territory', terr);
