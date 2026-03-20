@@ -1228,14 +1228,18 @@ async function loadReportLeads(page = 1) {
   reportPage = page;
   const from = (page-1)*PAGE, to = from+PAGE-1;
   document.getElementById('report-tbody').innerHTML = `<tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr>`;
-  const { data, count } = await sb.from('builtwith_company_targets')
-    .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner', { count: 'exact' })
-    .eq('contacts_verified', true)
-    .eq('domain_valid', true)
-    .not('first_contact_email', 'is', null)
-    .order(repSortCol, { ascending: repSortDir === 'asc', nullsFirst: false })
+  const { data, count } = await sb.from('v_report_leads')
+    .select('*', { count: 'exact' })
+    .order('priority_score', { ascending: false, nullsFirst: false })
     .range(from, to);
-  reportLeads = data || [];
+  reportLeads = (data || []).map(l => ({
+    ...l,
+    first_contact_name:  l.contact_name,
+    first_contact_email: l.contact_email,
+    first_contact_phone: l.contact_phone,
+    domain_derived_name: l.company_name,
+    email_source:        l.email_confidence
+  }));
   filteredReport = [...reportLeads];
   reportTotal = count || 0;
   renderReportTable();
@@ -1251,28 +1255,30 @@ async function loadReportLeadsFiltered(page = 1) {
   const terr  = document.getElementById('rf-territory').value;
   const score = document.getElementById('rf-score').value;
   const srch  = document.getElementById('rf-search').value.toLowerCase();
-
   const from = (page-1)*PAGE, to = from+PAGE-1;
   document.getElementById('report-tbody').innerHTML = `<tr><td colspan="13"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
 
-  let q = sb.from('builtwith_company_targets')
-    .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner', { count: 'exact' })
-    .eq('contacts_verified', true)
-    .eq('domain_valid', true)
-    .not('first_contact_email', 'is', null)
-    .order(repSortCol, { ascending: repSortDir === 'asc', nullsFirst: false });
+  let q = sb.from('v_report_leads')
+    .select('*', { count: 'exact' })
+    .order('priority_score', { ascending: false, nullsFirst: false });
 
-  if (prod) q = q.eq('west_telco_product', prod);
-  if (terr) q = q.eq('territory', terr);
-  if (score==='high') q = q.gte('priority_score', 35);
-  if (score==='mid') q = q.gte('priority_score', 20).lt('priority_score', 35);
-  if (score==='low') q = q.lt('priority_score', 20);
-  if (srch) q = q.ilike('company_name', `%${srch}%`);
+  if (prod)  q = q.eq('west_telco_product', prod);
+  if (terr)  q = q.eq('territory', terr);
+  if (score === 'high') q = q.gte('priority_score', 35);
+  if (score === 'mid')  q = q.gte('priority_score', 20).lt('priority_score', 35);
+  if (score === 'low')  q = q.lt('priority_score', 20);
+  if (srch)  q = q.ilike('company_name', `%${srch}%`);
 
   q = q.range(from, to);
   const { data, count } = await q;
-  reportLeads = data || [];
-  filteredReport = [...reportLeads];
+  reportLeads = (data || []).map(l => ({
+    ...l,
+    first_contact_name:  l.contact_name,
+    first_contact_email: l.contact_email,
+    first_contact_phone: l.contact_phone,
+    domain_derived_name: l.company_name,
+    email_source:        l.email_confidence
+  }));
   reportTotal = count || 0;
   renderReportTable();
 }
@@ -1339,7 +1345,22 @@ function renderReportTable() {
       <td style="font-size:11px;color:var(--text2)">${l.company_employees||'—'}</td>
       <td style="font-size:11px;color:var(--text2)">${l.company_revenue||'—'}</td>
       <td style="font-size:11px;color:var(--green)">${l.company_tech_spend||'—'}</td>
-      <td class="email-td">${l.first_contact_email||'—'}</td>
+      <td class="email-td">
+        ${l.first_contact_email
+          ? `<div style="display:flex;flex-direction:column;gap:2px">
+              <span>${l.first_contact_email}</span>
+              <span style="font-size:8px;padding:1px 4px;border-radius:3px;width:fit-content;${
+                l.email_source==='verified'  ? 'background:rgba(0,212,255,0.15);color:var(--cyan)' :
+                l.email_source==='pattern'   ? 'background:rgba(80,220,80,0.15);color:#6ddd88' :
+                'background:rgba(255,180,0,0.12);color:#ffb400'
+              }">${
+                l.email_source==='verified'  ? '✓ verificado' :
+                l.email_source==='pattern'   ? '~ patrón' :
+                '○ inferido'
+              }</span>
+            </div>`
+          : '—'}
+      </td>
       <td>${phone}</td>
       <td>${porQueR}</td>
       <td><span style="color:var(--green);font-size:10px">● disponible</span></td>
@@ -1443,13 +1464,13 @@ function exportExcel(leads, pName, pPeriod) {
     'Score':                l.priority_score || 0,
     'Industria':            l.company_vertical && l.company_vertical !== 'Unknown' ? l.company_vertical : '',
     'Empleados':            l.company_employees || '',
-    'Revenue':              l.company_revenue || '',
-    'Tech Spend':           l.company_tech_spend || '',
     'Nombre contacto':      l.first_contact_name || '',
     'Cargo':                l.contact_position || '',
+    'Seniority':            l.seniority || '',
     'Email contacto':       l.first_contact_email || '',
+    'Confianza email':      l.email_source === 'verified' ? 'Verificado' : l.email_source === 'pattern' ? 'Patrón confirmado' : 'Inferido',
     'Teléfono':             l.first_contact_phone || '',
-    'LinkedIn contacto':    l.contact_linkedin_url || '',
+    'LinkedIn contacto':    l.linkedin_url || '',
     'LinkedIn empresa':     l.company_linkedin_url || '',
     'Tecnología detectada': l.trigger_technology || '',
     'Oferta recomendada':   l.recommended_offer || '',
