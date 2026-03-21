@@ -1076,7 +1076,8 @@ async function loadStats() {
     set('sm-pending',  (s.pending||0).toLocaleString());
     set('sm-assigned', (s.assigned||0).toLocaleString());
     set('sm-available', available.toLocaleString());
-    set('cv-ready',    (s.total||0).toLocaleString());
+    const totalGlobal = (s.total||0) + (reportCount||0);
+    set('cv-ready',    totalGlobal.toLocaleString());
     set('cv-enriched', reportCount.toLocaleString());
     set('cv-pending',  (s.pending||0).toLocaleString());
     set('cv-assigned', (s.assigned||0).toLocaleString());
