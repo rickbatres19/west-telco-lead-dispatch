@@ -1,40 +1,49 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>West Telco · Lead Dispatch</title>
-  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap"
+    rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     :root {
       /* West Telco brand palette */
-      --navy:       #050d1a;
-      --navy2:      #0a1628;
-      --navy3:      #0f1e36;
-      --navy4:      #162440;
-      --blue:       #0066ff;
-      --blue-h:     #1a7aff;
-      --blue-dim:   rgba(0,102,255,0.12);
-      --blue-glow:  rgba(0,102,255,0.25);
-      --cyan:       #00d4ff;
-      --cyan-dim:   rgba(0,212,255,0.10);
-      --green:      #00e5a0;
-      --green-dim:  rgba(0,229,160,0.10);
-      --orange:     #ff8c00;
-      --orange-dim: rgba(255,140,0,0.10);
-      --red:        #ff3b5c;
-      --red-dim:    rgba(255,59,92,0.10);
-      --border:     rgba(0,102,255,0.15);
-      --border-h:   rgba(0,102,255,0.35);
-      --text:       #e8f0ff;
-      --text2:      #7a95c2;
-      --text3:      #3a5280;
-      --font:       'Rajdhani', sans-serif;
-      --body:       'Inter', sans-serif;
+      --navy: #050d1a;
+      --navy2: #0a1628;
+      --navy3: #0f1e36;
+      --navy4: #162440;
+      --blue: #0066ff;
+      --blue-h: #1a7aff;
+      --blue-dim: rgba(0, 102, 255, 0.12);
+      --blue-glow: rgba(0, 102, 255, 0.25);
+      --cyan: #00d4ff;
+      --cyan-dim: rgba(0, 212, 255, 0.10);
+      --green: #00e5a0;
+      --green-dim: rgba(0, 229, 160, 0.10);
+      --orange: #ff8c00;
+      --orange-dim: rgba(255, 140, 0, 0.10);
+      --red: #ff3b5c;
+      --red-dim: rgba(255, 59, 92, 0.10);
+      --border: rgba(0, 102, 255, 0.15);
+      --border-h: rgba(0, 102, 255, 0.35);
+      --text: #e8f0ff;
+      --text2: #7a95c2;
+      --text3: #3a5280;
+      --font: 'Rajdhani', sans-serif;
+      --body: 'Inter', sans-serif;
     }
 
     body {
@@ -52,8 +61,8 @@
       position: fixed;
       inset: 0;
       background-image:
-        linear-gradient(rgba(0,102,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,102,255,0.03) 1px, transparent 1px);
+        linear-gradient(rgba(0, 102, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 102, 255, 0.03) 1px, transparent 1px);
       background-size: 40px 40px;
       pointer-events: none;
       z-index: 0;
@@ -68,26 +77,33 @@
       display: flex;
       flex-direction: column;
       position: fixed;
-      top: 0; left: -240px;
+      top: 0;
+      left: -240px;
       z-index: 200;
-      transition: left 0.25s cubic-bezier(0.4,0,0.2,1);
-      box-shadow: 4px 0 24px rgba(0,0,0,0.4);
+      transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
     }
 
-    .sidebar.open { left: 0; }
+    .sidebar.open {
+      left: 0;
+    }
 
     /* Overlay behind sidebar */
     .sidebar-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(5,13,26,0.6);
+      background: rgba(5, 13, 26, 0.6);
       backdrop-filter: blur(2px);
       z-index: 199;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.25s;
     }
-    .sidebar-overlay.visible { opacity: 1; pointer-events: all; }
+
+    .sidebar-overlay.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
 
     /* Toggle button — always visible top-left */
     .sidebar-toggle {
@@ -109,7 +125,10 @@
       gap: 4px;
     }
 
-    .sidebar-toggle:hover { border-color: var(--blue); background: var(--navy3); }
+    .sidebar-toggle:hover {
+      border-color: var(--blue);
+      background: var(--navy3);
+    }
 
     .sidebar-toggle span {
       display: block;
@@ -120,15 +139,27 @@
       transition: all 0.2s;
     }
 
-    .sidebar-toggle.open span:nth-child(1) { transform: translateY(5.5px) rotate(45deg); }
-    .sidebar-toggle.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
-    .sidebar-toggle.open span:nth-child(3) { transform: translateY(-5.5px) rotate(-45deg); }
-    .sidebar-toggle.open span { background: var(--cyan); }
+    .sidebar-toggle.open span:nth-child(1) {
+      transform: translateY(5.5px) rotate(45deg);
+    }
+
+    .sidebar-toggle.open span:nth-child(2) {
+      opacity: 0;
+      transform: scaleX(0);
+    }
+
+    .sidebar-toggle.open span:nth-child(3) {
+      transform: translateY(-5.5px) rotate(-45deg);
+    }
+
+    .sidebar-toggle.open span {
+      background: var(--cyan);
+    }
 
     .logo-area {
       padding: 24px 20px 20px;
       border-bottom: 1px solid var(--border);
-      background: linear-gradient(180deg, rgba(0,102,255,0.08) 0%, transparent 100%);
+      background: linear-gradient(180deg, rgba(0, 102, 255, 0.08) 0%, transparent 100%);
     }
 
     .logo-eyebrow {
@@ -159,7 +190,11 @@
       flex-shrink: 0;
     }
 
-    .logo-icon svg { width: 18px; height: 18px; fill: white; }
+    .logo-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: white;
+    }
 
     .logo-name {
       font-family: var(--font);
@@ -216,7 +251,9 @@
       background: var(--blue-dim);
     }
 
-    .nav-item.active .nav-icon { color: var(--blue); }
+    .nav-item.active .nav-icon {
+      color: var(--blue);
+    }
 
     .nav-icon {
       width: 16px;
@@ -257,11 +294,28 @@
       margin-bottom: 8px;
     }
 
-    .metric-label { font-size: 11px; color: var(--text3); }
-    .metric-val   { font-family: var(--font); font-size: 14px; font-weight: 600; }
-    .metric-val.g { color: var(--green); }
-    .metric-val.b { color: var(--cyan); }
-    .metric-val.o { color: var(--orange); }
+    .metric-label {
+      font-size: 11px;
+      color: var(--text3);
+    }
+
+    .metric-val {
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .metric-val.g {
+      color: var(--green);
+    }
+
+    .metric-val.b {
+      color: var(--cyan);
+    }
+
+    .metric-val.o {
+      color: var(--orange);
+    }
 
     /* ===== MAIN ===== */
     .main {
@@ -275,7 +329,7 @@
 
     .topbar {
       height: 56px;
-      background: rgba(10,22,40,0.95);
+      background: rgba(10, 22, 40, 0.95);
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
@@ -287,8 +341,17 @@
       backdrop-filter: blur(8px);
     }
 
-    .topbar-left { display: flex; align-items: center; gap: 12px; }
-    .topbar-divider { width: 1px; height: 20px; background: var(--border); }
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .topbar-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+    }
 
     .topbar-title {
       font-family: var(--font);
@@ -298,20 +361,42 @@
       color: var(--text);
     }
 
-    .topbar-sub { font-size: 11px; color: var(--text3); }
+    .topbar-sub {
+      font-size: 11px;
+      color: var(--text3);
+    }
 
-    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
     .status-dot {
-      width: 7px; height: 7px;
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
       background: var(--green);
       box-shadow: 0 0 6px var(--green);
       animation: pulse 2s ease-in-out infinite;
     }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-    .content { padding: 24px 28px; flex: 1; }
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .4
+      }
+    }
+
+    .content {
+      padding: 24px 28px;
+      flex: 1;
+    }
 
     /* ===== CARDS ===== */
     .cards-grid {
@@ -331,19 +416,34 @@
       transition: border-color 0.2s;
     }
 
-    .card:hover { border-color: var(--border-h); }
+    .card:hover {
+      border-color: var(--border-h);
+    }
 
     .card::before {
       content: '';
       position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 2px;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
     }
 
-    .card.c-blue::before  { background: linear-gradient(90deg, var(--blue), var(--cyan)); }
-    .card.c-cyan::before  { background: linear-gradient(90deg, var(--cyan), var(--green)); }
-    .card.c-green::before { background: linear-gradient(90deg, var(--green), var(--cyan)); }
-    .card.c-orange::before{ background: linear-gradient(90deg, var(--orange), #ffcc00); }
+    .card.c-blue::before {
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+    }
+
+    .card.c-cyan::before {
+      background: linear-gradient(90deg, var(--cyan), var(--green));
+    }
+
+    .card.c-green::before {
+      background: linear-gradient(90deg, var(--green), var(--cyan));
+    }
+
+    .card.c-orange::before {
+      background: linear-gradient(90deg, var(--orange), #ffcc00);
+    }
 
     .card-label {
       font-size: 10px;
@@ -362,10 +462,21 @@
       line-height: 1;
     }
 
-    .card-value.blue   { color: var(--cyan); }
-    .card-value.purple { color: #a78bfa; }
-    .card-value.green  { color: var(--green); }
-    .card-value.orange { color: var(--orange); }
+    .card-value.blue {
+      color: var(--cyan);
+    }
+
+    .card-value.purple {
+      color: #a78bfa;
+    }
+
+    .card-value.green {
+      color: var(--green);
+    }
+
+    .card-value.orange {
+      color: var(--orange);
+    }
 
     /* ===== FILTERS ===== */
     .filter-bar {
@@ -376,7 +487,9 @@
       align-items: center;
     }
 
-    select, input[type="text"], input[type="email"] {
+    select,
+    input[type="text"],
+    input[type="email"] {
       background: var(--navy3);
       border: 1px solid var(--border);
       color: var(--text);
@@ -388,8 +501,14 @@
       transition: border-color 0.15s;
     }
 
-    select:focus, input:focus { border-color: var(--blue); }
-    select option { background: var(--navy3); }
+    select:focus,
+    input:focus {
+      border-color: var(--blue);
+    }
+
+    select option {
+      background: var(--navy3);
+    }
 
     .sel-count {
       margin-left: auto;
@@ -411,9 +530,14 @@
       overflow: hidden;
     }
 
-    table { width: 100%; border-collapse: collapse; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
 
-    thead { background: var(--navy3); }
+    thead {
+      background: var(--navy3);
+    }
 
     th {
       text-align: left;
@@ -427,11 +551,28 @@
       white-space: nowrap;
     }
 
-    tr.row { border-bottom: 1px solid rgba(0,102,255,0.06); transition: background 0.1s; cursor: pointer; }
-    tr.row:last-child { border-bottom: none; }
-    tr.row:hover { background: rgba(0,102,255,0.05); }
-    tr.row.selected { background: rgba(0,102,255,0.08); }
-    tr.row.locked { opacity: 0.4; cursor: not-allowed; }
+    tr.row {
+      border-bottom: 1px solid rgba(0, 102, 255, 0.06);
+      transition: background 0.1s;
+      cursor: pointer;
+    }
+
+    tr.row:last-child {
+      border-bottom: none;
+    }
+
+    tr.row:hover {
+      background: rgba(0, 102, 255, 0.05);
+    }
+
+    tr.row.selected {
+      background: rgba(0, 102, 255, 0.08);
+    }
+
+    tr.row.locked {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
 
     td {
       padding: 10px 14px;
@@ -440,9 +581,31 @@
       vertical-align: middle;
     }
 
-    td.company { color: var(--text); font-weight: 500; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    td.email-td { font-size: 11px; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    td.rat-td { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; color: var(--text3); }
+    td.company {
+      color: var(--text);
+      font-weight: 500;
+      max-width: 200px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    td.email-td {
+      font-size: 11px;
+      max-width: 180px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    td.rat-td {
+      max-width: 200px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 11px;
+      color: var(--text3);
+    }
 
     /* Score badge */
     .score {
@@ -457,9 +620,23 @@
       font-family: var(--font);
     }
 
-    .score.h { background: rgba(0,229,160,0.12); color: var(--green); border: 1px solid rgba(0,229,160,0.2); }
-    .score.m { background: rgba(255,140,0,0.12); color: var(--orange); border: 1px solid rgba(255,140,0,0.2); }
-    .score.l { background: rgba(255,255,255,0.04); color: var(--text3); border: 1px solid var(--border); }
+    .score.h {
+      background: rgba(0, 229, 160, 0.12);
+      color: var(--green);
+      border: 1px solid rgba(0, 229, 160, 0.2);
+    }
+
+    .score.m {
+      background: rgba(255, 140, 0, 0.12);
+      color: var(--orange);
+      border: 1px solid rgba(255, 140, 0, 0.2);
+    }
+
+    .score.l {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text3);
+      border: 1px solid var(--border);
+    }
 
     /* Product tag */
     .tag {
@@ -475,19 +652,43 @@
       white-space: nowrap;
     }
 
-    .tag.zoom       { background: rgba(0,102,255,0.12); color: #4da0ff; border: 1px solid rgba(0,102,255,0.2); }
-    .tag.xcally     { background: rgba(255,59,92,0.10); color: #ff6b8a; border: 1px solid rgba(255,59,92,0.2); }
-    .tag.edb        { background: rgba(0,212,255,0.10); color: var(--cyan); border: 1px solid rgba(0,212,255,0.2); }
-    .tag.dropbox    { background: rgba(0,229,160,0.10); color: var(--green); border: 1px solid rgba(0,229,160,0.2); }
-    .tag.solarwinds { background: rgba(255,140,0,0.10); color: var(--orange); border: 1px solid rgba(255,140,0,0.2); }
+    .tag.zoom {
+      background: rgba(0, 102, 255, 0.12);
+      color: #4da0ff;
+      border: 1px solid rgba(0, 102, 255, 0.2);
+    }
+
+    .tag.xcally {
+      background: rgba(255, 59, 92, 0.10);
+      color: #ff6b8a;
+      border: 1px solid rgba(255, 59, 92, 0.2);
+    }
+
+    .tag.edb {
+      background: rgba(0, 212, 255, 0.10);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 212, 255, 0.2);
+    }
+
+    .tag.dropbox {
+      background: rgba(0, 229, 160, 0.10);
+      color: var(--green);
+      border: 1px solid rgba(0, 229, 160, 0.2);
+    }
+
+    .tag.solarwinds {
+      background: rgba(255, 140, 0, 0.10);
+      color: var(--orange);
+      border: 1px solid rgba(255, 140, 0, 0.2);
+    }
 
     /* Assigned badge */
     .asgn-badge {
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      background: rgba(255,140,0,0.08);
-      border: 1px solid rgba(255,140,0,0.2);
+      background: rgba(255, 140, 0, 0.08);
+      border: 1px solid rgba(255, 140, 0, 0.2);
       color: var(--orange);
       padding: 2px 8px;
       border-radius: 4px;
@@ -519,11 +720,19 @@
     .btn-primary {
       background: linear-gradient(135deg, var(--blue) 0%, #0052cc 100%);
       color: #fff;
-      box-shadow: 0 2px 12px rgba(0,102,255,0.3);
+      box-shadow: 0 2px 12px rgba(0, 102, 255, 0.3);
     }
 
-    .btn-primary:hover { background: linear-gradient(135deg, var(--blue-h) 0%, var(--blue) 100%); box-shadow: 0 4px 20px rgba(0,102,255,0.4); }
-    .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--blue-h) 0%, var(--blue) 100%);
+      box-shadow: 0 4px 20px rgba(0, 102, 255, 0.4);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
 
     .btn-ghost {
       background: transparent;
@@ -531,16 +740,25 @@
       border: 1px solid var(--border);
     }
 
-    .btn-ghost:hover { border-color: var(--border-h); color: var(--text); }
-
-    .btn-cyan {
-      background: rgba(0,212,255,0.1);
-      color: var(--cyan);
-      border: 1px solid rgba(0,212,255,0.25);
+    .btn-ghost:hover {
+      border-color: var(--border-h);
+      color: var(--text);
     }
 
-    .btn-cyan:hover { background: rgba(0,212,255,0.18); }
-    .btn-cyan:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-cyan {
+      background: rgba(0, 212, 255, 0.1);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 212, 255, 0.25);
+    }
+
+    .btn-cyan:hover {
+      background: rgba(0, 212, 255, 0.18);
+    }
+
+    .btn-cyan:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
 
     /* ===== REPORT PANEL ===== */
     .report-panel {
@@ -572,8 +790,18 @@
       border-radius: 2px;
     }
 
-    .form-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
-    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
 
     .form-label {
       font-size: 10px;
@@ -599,11 +827,20 @@
       border-top: 1px solid var(--border);
     }
 
-    .page-info { font-size: 11px; color: var(--text3); margin-right: 8px; }
-    .page-btns { display: flex; gap: 4px; }
+    .page-info {
+      font-size: 11px;
+      color: var(--text3);
+      margin-right: 8px;
+    }
+
+    .page-btns {
+      display: flex;
+      gap: 4px;
+    }
 
     .page-btn {
-      width: 28px; height: 28px;
+      width: 28px;
+      height: 28px;
       background: var(--navy3);
       border: 1px solid var(--border);
       border-radius: 4px;
@@ -617,9 +854,21 @@
       transition: all 0.1s;
     }
 
-    .page-btn:hover { border-color: var(--blue); color: var(--cyan); }
-    .page-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
-    .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .page-btn:hover {
+      border-color: var(--blue);
+      color: var(--cyan);
+    }
+
+    .page-btn.active {
+      background: var(--blue);
+      color: #fff;
+      border-color: var(--blue);
+    }
+
+    .page-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
 
     /* ===== ACTION BAR ===== */
     .action-bar {
@@ -640,8 +889,15 @@
       color: var(--text3);
     }
 
-    .sel-row a { color: var(--blue); cursor: pointer; text-decoration: none; }
-    .sel-row a:hover { color: var(--cyan); }
+    .sel-row a {
+      color: var(--blue);
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .sel-row a:hover {
+      color: var(--cyan);
+    }
 
     /* ===== LOADING / EMPTY ===== */
     .loading {
@@ -653,17 +909,27 @@
       gap: 10px;
     }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
 
     .spinner {
-      width: 18px; height: 18px;
+      width: 18px;
+      height: 18px;
       border: 2px solid var(--navy4);
       border-top-color: var(--blue);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
     }
 
-    .empty { text-align: center; padding: 56px; color: var(--text3); font-size: 12px; }
+    .empty {
+      text-align: center;
+      padding: 56px;
+      color: var(--text3);
+      font-size: 12px;
+    }
 
     /* ===== TOAST ===== */
     .toast-wrap {
@@ -689,17 +955,35 @@
       gap: 8px;
     }
 
-    @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes slideIn {
+      from {
+        transform: translateX(20px);
+        opacity: 0;
+      }
 
-    .toast.s { border-left: 3px solid var(--green); }
-    .toast.e { border-left: 3px solid var(--red); }
-    .toast.i { border-left: 3px solid var(--blue); }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .toast.s {
+      border-left: 3px solid var(--green);
+    }
+
+    .toast.e {
+      border-left: 3px solid var(--red);
+    }
+
+    .toast.i {
+      border-left: 3px solid var(--blue);
+    }
 
     /* ===== MODAL ===== */
     .modal-bg {
       position: fixed;
       inset: 0;
-      background: rgba(5,13,26,0.85);
+      background: rgba(5, 13, 26, 0.85);
       backdrop-filter: blur(4px);
       z-index: 200;
       display: flex;
@@ -715,7 +999,7 @@
       padding: 28px;
       width: 480px;
       max-width: 90vw;
-      box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
     }
 
     .modal-title {
@@ -727,7 +1011,11 @@
       letter-spacing: 0.02em;
     }
 
-    .modal-sub { font-size: 12px; color: var(--text3); margin-bottom: 20px; }
+    .modal-sub {
+      font-size: 12px;
+      color: var(--text3);
+      margin-bottom: 20px;
+    }
 
     .modal-info {
       background: var(--navy3);
@@ -738,11 +1026,32 @@
       line-height: 2;
     }
 
-    .modal-info strong { color: var(--cyan); }
-    .modal-warn { font-size: 11px; color: var(--orange); margin-top: 12px; display: flex; align-items: center; gap: 6px; }
-    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    .modal-info strong {
+      color: var(--cyan);
+    }
 
-    input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--blue); cursor: pointer; }
+    .modal-warn {
+      font-size: 11px;
+      color: var(--orange);
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--blue);
+      cursor: pointer;
+    }
 
     /* ===== HISTORY ===== */
     .sortable {
@@ -750,466 +1059,551 @@
       user-select: none;
       white-space: nowrap;
     }
-    .sortable:hover { color: var(--cyan); }
-    .sort-icon { font-size: 10px; opacity: 0.5; margin-left: 3px; }
-    .sortable.asc .sort-icon, .sortable.desc .sort-icon { opacity: 1; color: var(--cyan); }
-      background: none;
-      border: none;
-      color: var(--blue);
-      cursor: pointer;
-      font-size: 11px;
-      padding: 3px 6px;
-      border-radius: 4px;
-      transition: background 0.1s;
+
+    .sortable:hover {
+      color: var(--cyan);
     }
 
-    .expand-btn:hover { background: var(--blue-dim); }
+    .sort-icon {
+      font-size: 10px;
+      opacity: 0.5;
+      margin-left: 3px;
+    }
+
+    .sortable.asc .sort-icon,
+    .sortable.desc .sort-icon {
+      opacity: 1;
+      color: var(--cyan);
+    }
+
+    background: none;
+    border: none;
+    color: var(--blue);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    transition: background 0.1s;
+    }
+
+    .expand-btn:hover {
+      background: var(--blue-dim);
+    }
   </style>
 </head>
+
 <body>
 
-<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
-<button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">
-  <span></span><span></span><span></span>
-</button>
+  <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">
+    <span></span><span></span><span></span>
+  </button>
 
-<!-- SIDEBAR -->
-<aside class="sidebar" id="sidebar">
-  <div class="logo-area">
-    <div class="logo-eyebrow">Partner Enablement</div>
-    <div class="logo-main">
-      <div class="logo-icon">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo-area">
+      <div class="logo-eyebrow">Partner Enablement</div>
+      <div class="logo-main">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+          </svg>
+        </div>
+        <div>
+          <div class="logo-name">WEST TELCO</div>
+        </div>
+      </div>
+      <div class="logo-sub">Lead Dispatch · Internal Tool</div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-section" style="margin-top:8px;margin-bottom:8px">Módulos</div>
+      <div class="nav-item active" onclick="showView('all')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
+        Universo de leads
+        <span class="nav-badge" id="nb-all">—</span>
       </div>
-      <div>
-        <div class="logo-name">WEST TELCO</div>
+      <div class="nav-item" onclick="showView('report')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+        </svg>
+        Leads calificados
+        <span class="nav-badge" id="nb-report" style="background:rgba(0,212,255,0.15);color:var(--cyan)">—</span>
       </div>
-    </div>
-    <div class="logo-sub">Lead Dispatch · Internal Tool</div>
-  </div>
-
-  <nav class="nav">
-    <div class="nav-section" style="margin-top:8px;margin-bottom:8px">Módulos</div>
-    <div class="nav-item active" onclick="showView('all')">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-      </svg>
-      Universo de leads
-      <span class="nav-badge" id="nb-all">—</span>
-    </div>
-    <div class="nav-item" onclick="showView('report')">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-      </svg>
-      Leads calificados
-      <span class="nav-badge" id="nb-report" style="background:rgba(0,212,255,0.15);color:var(--cyan)">—</span>
-    </div>
-    <div class="nav-item" onclick="showView('history')">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-      </svg>
-      Histórico
-    </div>
-  </nav>
-
-  <div class="sidebar-metrics">
-    <div class="metrics-title">Estado del pipeline</div>
-    <div class="metric-row"><span class="metric-label">Listos (ready)</span><span class="metric-val g" id="sm-ready">—</span></div>
-    <div class="metric-row"><span class="metric-label">Pendientes</span><span class="metric-val o" id="sm-pending">—</span></div>
-    <div class="metric-row"><span class="metric-label">Asignados</span><span class="metric-val b" id="sm-assigned">—</span></div>
-    <div class="metric-row"><span class="metric-label">Disponibles</span><span class="metric-val g" id="sm-available">—</span></div>
-  </div>
-</aside>
-
-<!-- MAIN -->
-<main class="main">
-  <div class="topbar">
-    <div class="topbar-left">
-      <span class="topbar-title" id="view-title">Universo de leads</span>
-      <div class="topbar-divider"></div>
-      <span class="topbar-sub" id="topbar-sub"></span>
-    </div>
-    <div class="topbar-right">
-      <div class="status-dot"></div>
-      <span style="font-size:11px;color:var(--text3)">Conectado · Supabase</span>
-    </div>
-  </div>
-
-  <div class="content">
-
-    <!-- ====== VIEW: ALL LEADS ====== -->
-    <div id="view-all">
-      <div class="cards-grid">
-        <div class="card c-blue">
-          <div class="card-label">Total registros</div>
-          <div class="card-value blue" id="cv-ready">—</div>
-        </div>
-        <div class="card c-green">
-          <div class="card-label">Enriquecidos (ready)</div>
-          <div class="card-value green" id="cv-enriched">—</div>
-        </div>
-        <div class="card c-orange">
-          <div class="card-label">En enriquecimiento</div>
-          <div class="card-value orange" id="cv-pending">—</div>
-        </div>
-        <div class="card c-cyan">
-          <div class="card-label">Asignados a partners</div>
-          <div class="card-value purple" id="cv-assigned">—</div>
-        </div>
+      <div class="nav-item" onclick="showView('history')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Histórico
       </div>
+    </nav>
 
-      <div class="filter-bar">
-        <select id="af-product" onchange="filterAll()">
-          <option value="">Todos los productos</option>
-          <option>Zoom</option><option>Xcally</option><option>EDB</option><option>Dropbox</option><option>Solarwinds</option>
-        </select>
-        <select id="af-territory" onchange="filterAll()">
-          <option value="">Todos los territorios</option>
-          <option value="Mexico">México</option>
-          <option value="Brasil">Brasil</option>
-          <option value="Cono Sur">Cono Sur</option>
-          <option value="Zona Andina">Zona Andina</option>
-        </select>
-        <select id="af-enrich" onchange="filterAll()">
-          <option value="">Todos los estados</option>
-          <option value="ready">✓ Enriquecidos (ready)</option>
-          <option value="partial">◑ Parciales</option>
-          <option value="pending">○ Pendientes</option>
-        </select>
-        <select id="af-status" onchange="filterAll()">
-          <option value="">Asignación: todos</option>
-          <option value="yes">Asignados</option>
-          <option value="no">Disponibles</option>
-        </select>
-        <input type="text" id="af-search" placeholder="Buscar empresa..." oninput="filterAll()" style="width:180px"/>
+    <div class="sidebar-metrics">
+      <div class="metrics-title">Estado del pipeline</div>
+      <div class="metric-row"><span class="metric-label">Listos (ready)</span><span class="metric-val g"
+          id="sm-ready">—</span></div>
+      <div class="metric-row"><span class="metric-label">Pendientes</span><span class="metric-val o"
+          id="sm-pending">—</span></div>
+      <div class="metric-row"><span class="metric-label">Asignados</span><span class="metric-val b"
+          id="sm-assigned">—</span></div>
+      <div class="metric-row"><span class="metric-label">Disponibles</span><span class="metric-val g"
+          id="sm-available">—</span></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="topbar-title" id="view-title">Universo de leads</span>
+        <div class="topbar-divider"></div>
+        <span class="topbar-sub" id="topbar-sub"></span>
       </div>
-
-      <div class="table-wrap">
-        <div class="pagination" id="all-pag" style="display:none">
-          <span class="page-info" id="all-pinfo"></span>
-          <div class="page-btns" id="all-pbtns"></div>
-        </div>
-        <table>
-          <thead><tr>
-            <th class="sortable" onclick="sortAll('company_name')">Empresa <span class="sort-icon" id="si-company_name">⇅</span></th>
-            <th class="sortable" onclick="sortAll('country')">País <span class="sort-icon" id="si-country">⇅</span></th>
-            <th class="sortable" onclick="sortAll('west_telco_product')">Producto <span class="sort-icon" id="si-west_telco_product">⇅</span></th>
-            <th class="sortable" onclick="sortAll('priority_score')">Score <span class="sort-icon" id="si-priority_score">↓</span></th>
-            <th class="sortable" onclick="sortAll('enrichment_status')">Estado <span class="sort-icon" id="si-enrichment_status">⇅</span></th>
-            <th class="sortable" onclick="sortAll('company_vertical')">Industria <span class="sort-icon" id="si-company_vertical">⇅</span></th>
-            <th class="sortable" onclick="sortAll('company_employees')">Empleados <span class="sort-icon" id="si-company_employees">⇅</span></th>
-            <th>Revenue</th>
-            <th>Tech Spend</th>
-            <th>Email</th>
-            <th>Teléfono</th>
-            <th>Por qué / Oferta</th>
-            <th class="sortable" onclick="sortAll('assigned_to_partner')">Asignado a <span class="sort-icon" id="si-assigned_to_partner">⇅</span></th>
-          </tr></thead>
-          <tbody id="all-tbody"><tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando leads...</div></td></tr></tbody>
-        </table>
-        <div class="pagination" id="all-pag-bottom" style="display:none">
-          <span class="page-info" id="all-pinfo-bottom"></span>
-          <div class="page-btns" id="all-pbtns-bottom"></div>
-        </div>
+      <div class="topbar-right">
+        <div class="status-dot"></div>
+        <span style="font-size:11px;color:var(--text3)">Conectado · Supabase</span>
       </div>
     </div>
 
-    <!-- ====== VIEW: REPORT ====== -->
-    <div id="view-report" style="display:none">
-      <div class="report-panel">
-        <div class="panel-title">Configurar reporte</div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Nombre del partner</label>
-            <input type="text" id="rp-name" placeholder="ej. Integra Tech S.A." style="width:200px"/>
+    <div class="content">
+
+      <!-- ====== VIEW: ALL LEADS ====== -->
+      <div id="view-all">
+        <div class="cards-grid">
+          <div class="card c-blue">
+            <div class="card-label">Total registros</div>
+            <div class="card-value blue" id="cv-ready">—</div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Email del partner</label>
-            <input type="email" id="rp-email" placeholder="ventas@partner.com" style="width:230px"/>
+          <div class="card c-green">
+            <div class="card-label">Enriquecidos (ready)</div>
+            <div class="card-value green" id="cv-enriched">—</div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Periodo</label>
-            <input type="text" id="rp-period" placeholder="ej. Abril 2025" style="width:130px"/>
+          <div class="card c-orange">
+            <div class="card-label">En enriquecimiento</div>
+            <div class="card-value orange" id="cv-pending">—</div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Notas internas</label>
-            <input type="text" id="rp-notes" placeholder="Opcional" style="width:190px"/>
+          <div class="card c-cyan">
+            <div class="card-label">Asignados a partners</div>
+            <div class="card-value purple" id="cv-assigned">—</div>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <select id="af-product" onchange="filterAll()">
+            <option value="">Todos los productos</option>
+            <option>Zoom</option>
+            <option>Xcally</option>
+            <option>EDB</option>
+            <option>Dropbox</option>
+            <option>Solarwinds</option>
+          </select>
+          <select id="af-territory" onchange="filterAll()">
+            <option value="">Todos los territorios</option>
+            <option value="Mexico">México</option>
+            <option value="Brasil">Brasil</option>
+            <option value="Cono Sur">Cono Sur</option>
+            <option value="Zona Andina">Zona Andina</option>
+          </select>
+          <select id="af-enrich" onchange="filterAll()">
+            <option value="">Todos los estados</option>
+            <option value="ready">✓ Enriquecidos (ready)</option>
+            <option value="partial">◑ Parciales</option>
+            <option value="pending">○ Pendientes</option>
+          </select>
+          <select id="af-status" onchange="filterAll()">
+            <option value="">Asignación: todos</option>
+            <option value="yes">Asignados</option>
+            <option value="no">Disponibles</option>
+          </select>
+          <input type="text" id="af-search" placeholder="Buscar empresa..." oninput="filterAll()" style="width:180px" />
+        </div>
+
+        <div class="table-wrap">
+          <div class="pagination" id="all-pag" style="display:none">
+            <span class="page-info" id="all-pinfo"></span>
+            <div class="page-btns" id="all-pbtns"></div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th class="sortable" onclick="sortAll('company_name')">Empresa <span class="sort-icon"
+                    id="si-company_name">⇅</span></th>
+                <th class="sortable" onclick="sortAll('country')">País <span class="sort-icon" id="si-country">⇅</span>
+                </th>
+                <th class="sortable" onclick="sortAll('west_telco_product')">Producto <span class="sort-icon"
+                    id="si-west_telco_product">⇅</span></th>
+                <th class="sortable" onclick="sortAll('priority_score')">Score <span class="sort-icon"
+                    id="si-priority_score">↓</span></th>
+                <th class="sortable" onclick="sortAll('enrichment_status')">Estado <span class="sort-icon"
+                    id="si-enrichment_status">⇅</span></th>
+                <th class="sortable" onclick="sortAll('company_vertical')">Industria <span class="sort-icon"
+                    id="si-company_vertical">⇅</span></th>
+                <th class="sortable" onclick="sortAll('company_employees')">Empleados <span class="sort-icon"
+                    id="si-company_employees">⇅</span></th>
+                <th>Revenue</th>
+                <th>Tech Spend</th>
+                <th>Email</th>
+                <th>Teléfono</th>
+                <th>Por qué / Oferta</th>
+                <th class="sortable" onclick="sortAll('assigned_to_partner')">Asignado a <span class="sort-icon"
+                    id="si-assigned_to_partner">⇅</span></th>
+              </tr>
+            </thead>
+            <tbody id="all-tbody">
+              <tr>
+                <td colspan="12">
+                  <div class="loading">
+                    <div class="spinner"></div> Cargando leads...
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="pagination" id="all-pag-bottom" style="display:none">
+            <span class="page-info" id="all-pinfo-bottom"></span>
+            <div class="page-btns" id="all-pbtns-bottom"></div>
           </div>
         </div>
       </div>
 
-      <div class="filter-bar">
-        <select id="rf-product" onchange="filterReport()">
-          <option value="">Todos los productos</option>
-          <option>Zoom</option><option>Xcally</option><option>EDB</option><option>Dropbox</option><option>Solarwinds</option>
-        </select>
-        <select id="rf-territory" onchange="filterReport()">
-          <option value="">Todos los territorios</option>
-          <option value="Mexico">México</option>
-          <option value="Brasil">Brasil</option>
-          <option value="Cono Sur">Cono Sur</option>
-          <option value="Zona Andina">Zona Andina</option>
-        </select>
-        <select id="rf-score" onchange="filterReport()">
-          <option value="">Cualquier score</option>
-          <option value="high">Alto ≥35</option>
-          <option value="mid">Medio 20–34</option>
-          <option value="low">Bajo &lt;20</option>
-        </select>
-        <input type="text" id="rf-search" placeholder="Buscar empresa..." oninput="filterReport()" style="width:180px"/>
-        <span class="sel-count" id="r-badge">0 seleccionados</span>
-      </div>
-
-      <div class="sel-row">
-        <a onclick="selectAllReport()">Seleccionar todos en vista</a>
-        <span>·</span>
-        <a onclick="clearReportSel()">Limpiar selección</a>
-        <span style="color:var(--orange);font-size:10px;margin-left:4px">⚠ Leads ya asignados no son seleccionables</span>
-      </div>
-
-      <div class="table-wrap">
-        <div class="pagination" id="r-pag" style="display:none">
-          <span class="page-info" id="r-pinfo"></span>
-          <div class="page-btns" id="r-pbtns"></div>
+      <!-- ====== VIEW: REPORT ====== -->
+      <div id="view-report" style="display:none">
+        <div class="report-panel">
+          <div class="panel-title">Configurar reporte</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nombre del partner</label>
+              <input type="text" id="rp-name" placeholder="ej. Integra Tech S.A." style="width:200px" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email del partner</label>
+              <input type="email" id="rp-email" placeholder="ventas@partner.com" style="width:230px" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Periodo</label>
+              <input type="text" id="rp-period" placeholder="ej. Abril 2025" style="width:130px" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Notas internas</label>
+              <input type="text" id="rp-notes" placeholder="Opcional" style="width:190px" />
+            </div>
+          </div>
         </div>
-        <table>
-          <thead><tr>
-            <th style="width:36px"><input type="checkbox" id="r-check-all" onchange="toggleAllReport(this.checked)"/></th>
-            <th class="sortable" onclick="sortReport('company_name')">Empresa <span class="sort-icon" id="rsi-company_name">⇅</span></th>
-            <th class="sortable" onclick="sortReport('country')">País <span class="sort-icon" id="rsi-country">⇅</span></th>
-            <th class="sortable" onclick="sortReport('west_telco_product')">Producto <span class="sort-icon" id="rsi-west_telco_product">⇅</span></th>
-            <th class="sortable" onclick="sortReport('priority_score')">Score <span class="sort-icon" id="rsi-priority_score">↓</span></th>
-            <th class="sortable" onclick="sortReport('company_vertical')">Industria <span class="sort-icon" id="rsi-company_vertical">⇅</span></th>
-            <th class="sortable" onclick="sortReport('company_employees')">Empleados <span class="sort-icon" id="rsi-company_employees">⇅</span></th>
-            <th>Tech Spend</th>
-            <th>Email</th>
-            <th>Teléfono</th>
-            <th>Por qué / Oferta</th>
-            <th class="sortable" onclick="sortReport('assigned_to_partner')">Estado <span class="sort-icon" id="rsi-assigned_to_partner">⇅</span></th>
-          </tr></thead>
-          <tbody id="report-tbody"><tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr></tbody>
-        </table>
-        <div class="pagination" id="r-pag-bottom" style="display:none">
-          <span class="page-info" id="r-pinfo-bottom"></span>
-          <div class="page-btns" id="r-pbtns-bottom"></div>
+
+        <div class="filter-bar">
+          <select id="rf-product" onchange="filterReport()">
+            <option value="">Todos los productos</option>
+            <option>Zoom</option>
+            <option>Xcally</option>
+            <option>EDB</option>
+            <option>Dropbox</option>
+            <option>Solarwinds</option>
+          </select>
+          <select id="rf-territory" onchange="filterReport()">
+            <option value="">Todos los territorios</option>
+            <option value="Mexico">México</option>
+            <option value="Brasil">Brasil</option>
+            <option value="Cono Sur">Cono Sur</option>
+            <option value="Zona Andina">Zona Andina</option>
+          </select>
+          <select id="rf-score" onchange="filterReport()">
+            <option value="">Cualquier score</option>
+            <option value="high">Alto ≥35</option>
+            <option value="mid">Medio 20–34</option>
+            <option value="low">Bajo &lt;20</option>
+          </select>
+          <input type="text" id="rf-search" placeholder="Buscar empresa..." oninput="filterReport()"
+            style="width:180px" />
+          <span class="sel-count" id="r-badge">0 seleccionados</span>
+        </div>
+
+        <div class="sel-row">
+          <a onclick="selectAllReport()">Seleccionar todos en vista</a>
+          <span>·</span>
+          <a onclick="clearReportSel()">Limpiar selección</a>
+          <span style="color:var(--orange);font-size:10px;margin-left:4px">⚠ Leads ya asignados no son
+            seleccionables</span>
+        </div>
+
+        <div class="table-wrap">
+          <div class="pagination" id="r-pag" style="display:none">
+            <span class="page-info" id="r-pinfo"></span>
+            <div class="page-btns" id="r-pbtns"></div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width:36px"><input type="checkbox" id="r-check-all"
+                    onchange="toggleAllReport(this.checked)" /></th>
+                <th class="sortable" onclick="sortReport('company_name')">Empresa <span class="sort-icon"
+                    id="rsi-company_name">⇅</span></th>
+                <th class="sortable" onclick="sortReport('country')">País <span class="sort-icon"
+                    id="rsi-country">⇅</span></th>
+                <th class="sortable" onclick="sortReport('west_telco_product')">Producto <span class="sort-icon"
+                    id="rsi-west_telco_product">⇅</span></th>
+                <th class="sortable" onclick="sortReport('priority_score')">Score <span class="sort-icon"
+                    id="rsi-priority_score">↓</span></th>
+                <th class="sortable" onclick="sortReport('company_vertical')">Industria <span class="sort-icon"
+                    id="rsi-company_vertical">⇅</span></th>
+                <th class="sortable" onclick="sortReport('company_employees')">Empleados <span class="sort-icon"
+                    id="rsi-company_employees">⇅</span></th>
+                <th>Tech Spend</th>
+                <th>Email</th>
+                <th>Teléfono</th>
+                <th>Por qué / Oferta</th>
+                <th class="sortable" onclick="sortReport('assigned_to_partner')">Estado <span class="sort-icon"
+                    id="rsi-assigned_to_partner">⇅</span></th>
+              </tr>
+            </thead>
+            <tbody id="report-tbody">
+              <tr>
+                <td colspan="12">
+                  <div class="loading">
+                    <div class="spinner"></div> Cargando leads disponibles...
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="pagination" id="r-pag-bottom" style="display:none">
+            <span class="page-info" id="r-pinfo-bottom"></span>
+            <div class="page-btns" id="r-pbtns-bottom"></div>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-ghost" onclick="clearReportSel()">Limpiar</button>
+          <button class="btn btn-cyan" id="btn-export" onclick="exportExcel()" disabled>↓ Exportar Excel</button>
+          <button class="btn btn-primary" id="btn-generate" onclick="openConfirm()" disabled>→ Generar y
+            asignar</button>
         </div>
       </div>
 
-      <div class="action-bar">
-        <button class="btn btn-ghost" onclick="clearReportSel()">Limpiar</button>
-        <button class="btn btn-cyan" id="btn-export" onclick="exportExcel()" disabled>↓ Exportar Excel</button>
-        <button class="btn btn-primary" id="btn-generate" onclick="openConfirm()" disabled>→ Generar y asignar</button>
+      <!-- ====== VIEW: HISTORY ====== -->
+      <div id="view-history" style="display:none">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:36px"></th>
+                <th>Partner</th>
+                <th>Email</th>
+                <th>Periodo</th>
+                <th>Leads</th>
+                <th>Estado</th>
+                <th>Generado</th>
+                <th>Notas</th>
+              </tr>
+            </thead>
+            <tbody id="hist-tbody">
+              <tr>
+                <td colspan="8">
+                  <div class="loading">
+                    <div class="spinner"></div> Cargando...
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- MODAL -->
+  <div class="modal-bg" id="modal" style="display:none">
+    <div class="modal">
+      <div class="modal-title">Confirmar asignación</div>
+      <div class="modal-sub" id="modal-sub">Revisa los detalles antes de confirmar.</div>
+      <div class="modal-info">
+        <div>Partner: <strong id="m-partner">—</strong></div>
+        <div>Email: <strong id="m-email">—</strong></div>
+        <div>Periodo: <strong id="m-period">—</strong></div>
+        <div>Leads a asignar: <strong id="m-count">—</strong></div>
+      </div>
+      <div class="modal-warn">⚠ Una vez asignados, estos leads quedan bloqueados para otros reportes.</div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="generateReport()">Confirmar y generar</button>
       </div>
     </div>
-
-    <!-- ====== VIEW: HISTORY ====== -->
-    <div id="view-history" style="display:none">
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th style="width:36px"></th>
-            <th>Partner</th><th>Email</th><th>Periodo</th>
-            <th>Leads</th><th>Estado</th><th>Generado</th><th>Notas</th>
-          </tr></thead>
-          <tbody id="hist-tbody"><tr><td colspan="8"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr></tbody>
-        </table>
-      </div>
-    </div>
-
   </div>
-</main>
 
-<!-- MODAL -->
-<div class="modal-bg" id="modal" style="display:none">
-  <div class="modal">
-    <div class="modal-title">Confirmar asignación</div>
-    <div class="modal-sub" id="modal-sub">Revisa los detalles antes de confirmar.</div>
-    <div class="modal-info">
-      <div>Partner: <strong id="m-partner">—</strong></div>
-      <div>Email: <strong id="m-email">—</strong></div>
-      <div>Periodo: <strong id="m-period">—</strong></div>
-      <div>Leads a asignar: <strong id="m-count">—</strong></div>
-    </div>
-    <div class="modal-warn">⚠ Una vez asignados, estos leads quedan bloqueados para otros reportes.</div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="generateReport()">Confirmar y generar</button>
-    </div>
-  </div>
-</div>
+  <div class="toast-wrap" id="toasts"></div>
 
-<div class="toast-wrap" id="toasts"></div>
+  <script>
+    const SB_URL = 'https://mjrsvivaowhnkfumsahc.supabase.co';
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qcnN2aXZhb3dobmtmdW1zYWhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTY0MTgsImV4cCI6MjA4NzY5MjQxOH0.Phvs-QyMc-xrxsBO7FRa9nAVmDoSiR_dJ3GdW015PKo';
+    const sb = supabase.createClient(SB_URL, SB_KEY);
 
-<script>
-const SB_URL = 'https://mjrsvivaowhnkfumsahc.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qcnN2aXZhb3dobmtmdW1zYWhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTY0MTgsImV4cCI6MjA4NzY5MjQxOH0.Phvs-QyMc-xrxsBO7FRa9nAVmDoSiR_dJ3GdW015PKo';
-const sb = supabase.createClient(SB_URL, SB_KEY);
+    // State
+    let allLeads = [], filteredAll = [], allPage = 1, allTotal = 0;
+    let reportLeads = [], filteredReport = [], reportPage = 1, reportTotal = 0;
+    let reportSelected = new Set();
+    let allFilters = {};
+    let allSortCol = 'priority_score', allSortDir = 'desc';
+    let repSortCol = 'priority_score', repSortDir = 'desc';
+    const PAGE = 50;
 
-// State
-let allLeads = [], filteredAll = [], allPage = 1, allTotal = 0;
-let reportLeads = [], filteredReport = [], reportPage = 1, reportTotal = 0;
-let reportSelected = new Set();
-let allFilters = {};
-let allSortCol = 'priority_score', allSortDir = 'desc';
-let repSortCol = 'priority_score', repSortDir = 'desc';
-const PAGE = 50;
+    async function init() {
+      await loadStats();
+      await loadAllLeads(1);
+    }
 
-async function init() {
-  await loadStats();
-  await loadAllLeads(1);
-}
+    async function loadStats() {
+      try {
+        const [statsRes, reportCountRes] = await Promise.all([
+          sb.rpc('get_lead_stats'),
+          sb.rpc('get_report_leads_count')
+        ]);
+        const s = typeof statsRes.data === 'string' ? JSON.parse(statsRes.data) : statsRes.data;
+        const reportCount = reportCountRes.data || 0;
+        if (!s) return;
+        const available = reportCount - (s.assigned || 0);
+        // Sidebar metrics
+        set('sm-ready', (s.ready || 0).toLocaleString());
+        set('sm-pending', (s.pending || 0).toLocaleString());
+        set('sm-assigned', (s.assigned || 0).toLocaleString());
+        set('sm-available', available.toLocaleString());
+        // Cards vista principal - TOTAL = pending + ready
+        set('cv-ready', (s.total || 0).toLocaleString());
+        set('cv-enriched', (s.ready || 0).toLocaleString());
+        set('cv-pending', (s.pending || 0).toLocaleString());
+        set('cv-assigned', (s.assigned || 0).toLocaleString());
+        // Badges sidebar
+        set('nb-all', (s.pending || 0).toLocaleString());
+        set('nb-report', (s.ready || 0).toLocaleString());
+      } catch (e) { console.error('loadStats error:', e); }
+    }
 
-async function loadStats() {
-  try {
-    const [statsRes, reportCountRes] = await Promise.all([
-      sb.rpc('get_lead_stats'),
-      sb.rpc('get_report_leads_count')
-    ]);
-    const s = typeof statsRes.data === 'string' ? JSON.parse(statsRes.data) : statsRes.data;
-    const reportCount = reportCountRes.data || 0;
-    if (!s) return;
-    const available = reportCount - (s.assigned || 0);
-    // Sidebar metrics
-    set('sm-ready',    (s.ready||0).toLocaleString());
-    set('sm-pending',  (s.pending||0).toLocaleString());
-    set('sm-assigned', (s.assigned||0).toLocaleString());
-    set('sm-available', available.toLocaleString());
-    // Cards vista principal - TOTAL = pending + ready
-    set('cv-ready',    (s.total||0).toLocaleString());
-    set('cv-enriched', (s.ready||0).toLocaleString());
-    set('cv-pending',  (s.pending||0).toLocaleString());
-    set('cv-assigned', (s.assigned||0).toLocaleString());
-    // Badges sidebar
-    set('nb-all',      (s.pending||0).toLocaleString());
-    set('nb-report',   (s.ready||0).toLocaleString());
-  } catch(e) { console.error('loadStats error:', e); }
-}
+    function set(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
 
-function set(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+    // ===== VIEW 1 =====
+    async function loadAllLeads(page = 1) {
+      allPage = page;
+      const from = (page - 1) * PAGE, to = from + PAGE - 1;
+      document.getElementById('all-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
+      try {
+        const { data, count, error } = await sb.from('v_universo_pendientes')
+          .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner,assigned_at,enrichment_status', { count: 'exact' })
+          .order(allSortCol, { ascending: allSortDir === 'asc', nullsFirst: false })
+          .range(from, to);
+        if (error) throw error;
+        allLeads = data || [];
+        filteredAll = [...allLeads];
+        if (count) { allTotal = count; set('topbar-sub', allTotal.toLocaleString() + ' registros totales'); }
+        renderAllTable();
+      } catch (e) {
+        console.error('loadAllLeads error:', e);
+        document.getElementById('all-tbody').innerHTML = `<tr><td colspan="12"><div class="empty">Error cargando datos: ${e.message}</div></td></tr>`;
+      }
+    }
 
-// ===== VIEW 1 =====
-async function loadAllLeads(page = 1) {
-  allPage = page;
-  const from = (page-1)*PAGE, to = from+PAGE-1;
-  document.getElementById('all-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
-  try {
-    const { data, count, error } = await sb.from('v_universo_pendientes')
-      .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner,assigned_at,enrichment_status', { count: 'exact' })
-      .order(allSortCol, { ascending: allSortDir === 'asc', nullsFirst: false })
-      .range(from, to);
-    if (error) throw error;
-    allLeads = data || [];
-    filteredAll = [...allLeads];
-    if (count) { allTotal = count; set('topbar-sub', allTotal.toLocaleString() + ' registros totales'); }
-    renderAllTable();
-  } catch(e) {
-    console.error('loadAllLeads error:', e);
-    document.getElementById('all-tbody').innerHTML = `<tr><td colspan="12"><div class="empty">Error cargando datos: ${e.message}</div></td></tr>`;
-  }
-}
+    function filterAll() {
+      // With server-side pagination, re-fetch with filters
+      loadAllLeadsFiltered();
+    }
 
-function filterAll() {
-  // With server-side pagination, re-fetch with filters
-  loadAllLeadsFiltered();
-}
+    async function loadAllLeadsFiltered(page = 1) {
+      allPage = page;
+      const prod = document.getElementById('af-product').value;
+      const terr = document.getElementById('af-territory').value;
+      const stat = document.getElementById('af-status').value;
+      const enrich = document.getElementById('af-enrich').value;
+      const srch = document.getElementById('af-search').value.toLowerCase();
+      allFilters = { prod, terr, stat, enrich, srch };
 
-async function loadAllLeadsFiltered(page = 1) {
-  allPage = page;
-  const prod = document.getElementById('af-product').value;
-  const terr = document.getElementById('af-territory').value;
-  const stat = document.getElementById('af-status').value;
-  const enrich = document.getElementById('af-enrich').value;
-  const srch = document.getElementById('af-search').value.toLowerCase();
-  allFilters = { prod, terr, stat, enrich, srch };
+      const from = (page - 1) * PAGE, to = from + PAGE - 1;
+      document.getElementById('all-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
 
-  const from = (page-1)*PAGE, to = from+PAGE-1;
-  document.getElementById('all-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
+      let q = sb.from('v_universo_pendientes')
+        .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner,assigned_at,enrichment_status', { count: 'exact' });
 
-  let q = sb.from('v_universo_pendientes')
-    .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,first_contact_name,first_contact_email,first_contact_phone,contact_position,contact_department,company_linkedin_url,contact_linkedin_url,company_vertical,company_employees,company_revenue,company_tech_spend,company_hosting,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner,assigned_at,enrichment_status', { count: 'exact' });
+      if (prod) q = q.eq('west_telco_product', prod);
+      if (terr) q = q.eq('territory', terr);
+      if (enrich) q = q.eq('enrichment_status', enrich);
+      if (stat === 'yes') q = q.not('assigned_to_partner', 'is', null);
+      if (stat === 'no') q = q.is('assigned_to_partner', null);
+      if (srch) q = q.or(`company_name.ilike.%${srch}%,canonical_domain.ilike.%${srch}%,domain_derived_name.ilike.%${srch}%`);
 
-  if (prod)   q = q.eq('west_telco_product', prod);
-  if (terr)   q = q.eq('territory', terr);
-  if (enrich) q = q.eq('enrichment_status', enrich);
-  if (stat === 'yes') q = q.not('assigned_to_partner', 'is', null);
-  if (stat === 'no')  q = q.is('assigned_to_partner', null);
-  if (srch)   q = q.ilike('company_name', `%${srch}%`);
 
-  q = q.order(allSortCol, { ascending: allSortDir === 'asc', nullsFirst: false }).range(from, to);
-  const { data, count } = await q;
-  allLeads = data || [];
-  filteredAll = [...allLeads];
-  allTotal = count || 0;
-  set('topbar-sub', (allTotal||0).toLocaleString() + ' registros totales');
-  renderAllTable();
-}
+      q = q.order(allSortCol, { ascending: allSortDir === 'asc', nullsFirst: false }).range(from, to);
+      const { data, count } = await q;
+      allLeads = data || [];
+      filteredAll = [...allLeads];
+      allTotal = count || 0;
+      set('topbar-sub', (allTotal || 0).toLocaleString() + ' registros totales');
+      renderAllTable();
+    }
 
-function renderAllTable() {
-  const rows = filteredAll; // data already paginated server-side
-  const tbody = document.getElementById('all-tbody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="12"><div class="empty">Sin resultados con estos filtros</div></td></tr>'; document.getElementById('all-pag').style.display='none'; return; }
-  tbody.innerHTML = rows.map(l => {
-    const s = l.priority_score||0;
-    const sc = s>=35?'h':s>=20?'m':'l';
-    const tc = tagClass(l.west_telco_product);
+    function renderAllTable() {
+      const rows = filteredAll; // data already paginated server-side
+      const tbody = document.getElementById('all-tbody');
+      if (!rows.length) { tbody.innerHTML = '<tr><td colspan="12"><div class="empty">Sin resultados con estos filtros</div></td></tr>'; document.getElementById('all-pag').style.display = 'none'; return; }
+      tbody.innerHTML = rows.map(l => {
+        const s = l.priority_score || 0;
+        const sc = s >= 35 ? 'h' : s >= 20 ? 'm' : 'l';
+        const tc = tagClass(l.west_telco_product);
 
-    // Seniority badge
-    const sen = l.contact_seniority;
-    const senColor = sen==='c_suite'||sen==='vp'?'var(--green)':sen==='director'||sen==='manager'?'var(--cyan)':'var(--text3)';
-    const senLabel = sen ? sen.replace('_',' ') : null;
+        // Seniority badge
+        const sen = l.contact_seniority;
+        const senColor = sen === 'c_suite' || sen === 'vp' ? 'var(--green)' : sen === 'director' || sen === 'manager' ? 'var(--cyan)' : 'var(--text3)';
+        const senLabel = sen ? sen.replace('_', ' ') : null;
 
-    // Company name — fallback a domain_derived_name o canonical_domain
-    const displayName = l.company_name || l.domain_derived_name || l.canonical_domain || '—';
-    const nameStyle = !l.company_name ? 'color:var(--text2);font-style:italic' : '';
+        // Company name — fallback a domain_derived_name o canonical_domain
+        const displayName = l.company_name || l.domain_derived_name || l.canonical_domain || '—';
+        const nameStyle = !l.company_name ? 'color:var(--text2);font-style:italic' : '';
 
-    // LinkedIn — preferir contacto, fallback a empresa
-    const linkedinUrl = l.contact_linkedin_url || (l.company_linkedin_url ? (l.company_linkedin_url.startsWith('http') ? l.company_linkedin_url : 'https://'+l.company_linkedin_url) : null);
-    const liBtn = linkedinUrl
-      ? `<a href="${linkedinUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,119,181,0.15);border:1px solid rgba(0,119,181,0.3);color:#0a8fb5;padding:2px 8px;border-radius:4px;font-size:10px;text-decoration:none;white-space:nowrap">${l.contact_linkedin_url ? 'in' : '🏢'}</a>`
-      : '<span style="color:var(--text3);font-size:11px">—</span>';
+        // LinkedIn — preferir contacto, fallback a empresa
+        const linkedinUrl = l.contact_linkedin_url || (l.company_linkedin_url ? (l.company_linkedin_url.startsWith('http') ? l.company_linkedin_url : 'https://' + l.company_linkedin_url) : null);
+        const liBtn = linkedinUrl
+          ? `<a href="${linkedinUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,119,181,0.15);border:1px solid rgba(0,119,181,0.3);color:#0a8fb5;padding:2px 8px;border-radius:4px;font-size:10px;text-decoration:none;white-space:nowrap">${l.contact_linkedin_url ? 'in' : '🏢'}</a>`
+          : '<span style="color:var(--text3);font-size:11px">—</span>';
 
-    // Enrichment status badge
-    const enrichBadge = l.enrichment_status === 'ready'
-      ? `<span style="color:var(--green);font-size:10px;font-weight:600">● Enriquecido</span>`
-      : l.enrichment_status === 'partial'
-      ? `<span style="color:var(--orange);font-size:10px;font-weight:600">◑ Parcial</span>`
-      : `<span style="color:var(--text3);font-size:10px">○ Pendiente</span>`;
+        // Enrichment status badge
+        const enrichBadge = l.enrichment_status === 'ready'
+          ? `<span style="color:var(--green);font-size:10px;font-weight:600">● Enriquecido</span>`
+          : l.enrichment_status === 'partial'
+            ? `<span style="color:var(--orange);font-size:10px;font-weight:600">◑ Parcial</span>`
+            : `<span style="color:var(--text3);font-size:10px">○ Pendiente</span>`;
 
-    const asgn = l.assigned_to_partner
-      ? `<span class="asgn-badge">⬡ ${l.assigned_to_partner}</span>`
-      : '<span style="color:var(--text3);font-size:11px">—</span>';
+        const asgn = l.assigned_to_partner
+          ? `<span class="asgn-badge">⬡ ${l.assigned_to_partner}</span>`
+          : '<span style="color:var(--text3);font-size:11px">—</span>';
 
-    // Por qué / Oferta context cell
-    const porQue = l.trigger_technology || l.recommended_offer || l.offering_rationale
-      ? `<div style="max-width:200px">
+        // Por qué / Oferta context cell
+        const porQue = l.trigger_technology || l.recommended_offer || l.offering_rationale
+          ? `<div style="max-width:200px">
           ${l.trigger_technology ? `<span style="display:inline-block;background:rgba(124,108,252,0.12);border:1px solid rgba(124,108,252,0.25);color:#a78bfa;padding:1px 7px;border-radius:3px;font-size:9px;font-weight:600;margin-bottom:3px">${l.trigger_technology}</span>` : ''}
           ${l.recommended_offer ? `<div style="font-size:10px;color:var(--cyan);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px" title="${l.recommended_offer}">${l.recommended_offer}</div>` : ''}
           ${l.offering_rationale ? `<div style="font-size:9px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px" title="${l.offering_rationale}">${l.offering_rationale}</div>` : ''}
         </div>`
-      : '<span style="color:var(--text3);font-size:11px">—</span>';
+          : '<span style="color:var(--text3);font-size:11px">—</span>';
 
-    return `<tr class="row" id="row-${l.id}">
+        return `<tr class="row" id="row-${l.id}">
       <td class="company" style="${nameStyle}">
         <div style="display:flex;align-items:center;gap:6px">
           <button onclick="toggleContacts('${l.canonical_domain}',${l.id})"
             id="btn-${l.id}"
             style="background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);color:var(--cyan);width:18px;height:18px;border-radius:3px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0"
             title="Ver contactos enriquecidos">+</button>
-          <span title="${l.canonical_domain||''}">${displayName}</span>
+          <span title="${l.canonical_domain || ''}">${displayName}</span>
         </div>
       </td>
-      <td>${l.country||'—'}</td>
-      <td><span class="tag ${tc}">${l.west_telco_product||'—'}</span></td>
+      <td>${l.country || '—'}</td>
+      <td><span class="tag ${tc}">${l.west_telco_product || '—'}</span></td>
       <td><span class="score ${sc}">${s}</span></td>
       <td>${enrichBadge}</td>
       <td style="font-size:11px;color:var(--cyan)">${l.company_vertical && l.company_vertical !== 'Unknown' ? l.company_vertical : '—'}</td>
-      <td style="font-size:11px;color:var(--text2)">${l.company_employees||'—'}</td>
-      <td style="font-size:11px;color:var(--text2)">${l.company_revenue||'—'}</td>
-      <td style="font-size:11px;color:var(--green)">${l.company_tech_spend||'—'}</td>
-      <td class="email-td">${l.first_contact_email||'—'}</td>
+      <td style="font-size:11px;color:var(--text2)">${l.company_employees || '—'}</td>
+      <td style="font-size:11px;color:var(--text2)">${l.company_revenue || '—'}</td>
+      <td style="font-size:11px;color:var(--green)">${l.company_tech_spend || '—'}</td>
+      <td class="email-td">${l.first_contact_email || '—'}</td>
       <td style="font-size:11px;white-space:nowrap">${l.first_contact_phone ? `<a href="tel:${l.first_contact_phone}" style="color:var(--cyan);text-decoration:none">${l.first_contact_phone}</a>` : '<span style="color:var(--text3)">—</span>'}</td>
       <td>${porQue}</td>
       <td>${asgn}</td>
@@ -1221,116 +1615,116 @@ function renderAllTable() {
         </div>
       </td>
     </tr>`;
-  }).join('');
-  renderPag('all', allTotal, allPage, p => { loadAllLeadsFiltered(p); });
-}
+      }).join('');
+      renderPag('all', allTotal, allPage, p => { loadAllLeadsFiltered(p); });
+    }
 
-// ===== VIEW 2 =====
-async function loadReportLeads(page = 1) {
-  reportPage = page;
-  const from = (page-1)*PAGE, to = from+PAGE-1;
-  document.getElementById('report-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando leads calificados...</div></td></tr>`;
-  const { data, count } = await sb.from('v_report_leads')
-    .select('*', { count: 'exact' })
-    .order('priority_score', { ascending: false, nullsFirst: false })
-    .range(from, to);
-  reportLeads = (data || []).map(l => ({
-    ...l,
-    first_contact_name:  l.contact_name,
-    first_contact_email: l.contact_email,
-    first_contact_phone: l.contact_phone,
-    domain_derived_name: l.company_name,
-    email_source:        l.email_confidence,
-    company_tech_spend:  l.company_tech_spend
-  }));
-  filteredReport = [...reportLeads];
-  reportTotal = count || 0;
-  renderReportTable();
-}
+    // ===== VIEW 2 =====
+    async function loadReportLeads(page = 1) {
+      reportPage = page;
+      const from = (page - 1) * PAGE, to = from + PAGE - 1;
+      document.getElementById('report-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando leads calificados...</div></td></tr>`;
+      const { data, count } = await sb.from('v_report_leads')
+        .select('*', { count: 'exact' })
+        .order('priority_score', { ascending: false, nullsFirst: false })
+        .range(from, to);
+      reportLeads = (data || []).map(l => ({
+        ...l,
+        first_contact_name: l.contact_name,
+        first_contact_email: l.contact_email,
+        first_contact_phone: l.contact_phone,
+        domain_derived_name: l.company_name,
+        email_source: l.email_confidence,
+        company_tech_spend: l.company_tech_spend
+      }));
+      filteredReport = [...reportLeads];
+      reportTotal = count || 0;
+      renderReportTable();
+    }
 
-function filterReport() {
-  loadReportLeadsFiltered();
-}
+    function filterReport() {
+      loadReportLeadsFiltered();
+    }
 
-async function loadReportLeadsFiltered(page = 1) {
-  reportPage = page;
-  const prod  = document.getElementById('rf-product').value;
-  const terr  = document.getElementById('rf-territory').value;
-  const score = document.getElementById('rf-score').value;
-  const srch  = document.getElementById('rf-search').value.toLowerCase();
-  const from = (page-1)*PAGE, to = from+PAGE-1;
-  document.getElementById('report-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
+    async function loadReportLeadsFiltered(page = 1) {
+      reportPage = page;
+      const prod = document.getElementById('rf-product').value;
+      const terr = document.getElementById('rf-territory').value;
+      const score = document.getElementById('rf-score').value;
+      const srch = document.getElementById('rf-search').value.toLowerCase();
+      const from = (page - 1) * PAGE, to = from + PAGE - 1;
+      document.getElementById('report-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
 
-  let q = sb.from('v_report_leads')
-    .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,contact_name,contact_email,contact_phone,job_title,seniority,department,email_confidence,linkedin_url,company_linkedin_url,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner,assigned_at,enrichment_status,company_tech_spend', { count: 'exact' })
-    .order('priority_score', { ascending: false, nullsFirst: false });
+      let q = sb.from('v_report_leads')
+        .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,contact_name,contact_email,contact_phone,job_title,seniority,department,email_confidence,linkedin_url,company_linkedin_url,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner,assigned_at,enrichment_status,company_tech_spend', { count: 'exact' })
+        .order('priority_score', { ascending: false, nullsFirst: false });
 
-  if (prod)  q = q.eq('west_telco_product', prod);
-  if (terr)  q = q.eq('territory', terr);
-  if (score === 'high') q = q.gte('priority_score', 35);
-  if (score === 'mid')  q = q.gte('priority_score', 20).lt('priority_score', 35);
-  if (score === 'low')  q = q.lt('priority_score', 20);
-  if (srch)  q = q.ilike('company_name', `%${srch}%`);
+      if (prod) q = q.eq('west_telco_product', prod);
+      if (terr) q = q.eq('territory', terr);
+      if (score === 'high') q = q.gte('priority_score', 35);
+      if (score === 'mid') q = q.gte('priority_score', 20).lt('priority_score', 35);
+      if (score === 'low') q = q.lt('priority_score', 20);
+      if (srch) q = q.or(`company_name.ilike.%${srch}%,canonical_domain.ilike.%${srch}%`);
 
-  q = q.range(from, to);
-  const { data, count } = await q;
-  reportLeads = (data || []).map(l => ({
-    ...l,
-    first_contact_name:  l.contact_name,
-    first_contact_email: l.contact_email,
-    first_contact_phone: l.contact_phone,
-    domain_derived_name: l.company_name,
-    email_source:        l.email_confidence
-  }));
-  reportTotal = count || 0;
-  renderReportTable();
-}
+      q = q.range(from, to);
+      const { data, count } = await q;
+      reportLeads = (data || []).map(l => ({
+        ...l,
+        first_contact_name: l.contact_name,
+        first_contact_email: l.contact_email,
+        first_contact_phone: l.contact_phone,
+        domain_derived_name: l.company_name,
+        email_source: l.email_confidence
+      }));
+      reportTotal = count || 0;
+      renderReportTable();
+    }
 
-function renderReportTable() {
-  const rows = filteredReport;
-  const tbody = document.getElementById('report-tbody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="12"><div class="empty">Sin leads disponibles</div></td></tr>'; document.getElementById('r-pag').style.display='none'; return; }
-  tbody.innerHTML = rows.map(l => {
-    const s = l.priority_score||0;
-    const sc = s>=35?'h':s>=20?'m':'l';
-    const tc = tagClass(l.west_telco_product);
-    const locked = !!l.assigned_to_partner;
-    const chk = reportSelected.has(l.id) ? 'checked' : '';
+    function renderReportTable() {
+      const rows = filteredReport;
+      const tbody = document.getElementById('report-tbody');
+      if (!rows.length) { tbody.innerHTML = '<tr><td colspan="12"><div class="empty">Sin leads disponibles</div></td></tr>'; document.getElementById('r-pag').style.display = 'none'; return; }
+      tbody.innerHTML = rows.map(l => {
+        const s = l.priority_score || 0;
+        const sc = s >= 35 ? 'h' : s >= 20 ? 'm' : 'l';
+        const tc = tagClass(l.west_telco_product);
+        const locked = !!l.assigned_to_partner;
+        const chk = reportSelected.has(l.id) ? 'checked' : '';
 
-    const liBtn = (l.contact_linkedin_url || l.company_linkedin_url)
-      ? `<a href="${l.contact_linkedin_url || (l.company_linkedin_url?.startsWith('http') ? l.company_linkedin_url : 'https://'+l.company_linkedin_url)}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,119,181,0.15);border:1px solid rgba(0,119,181,0.3);color:#0a8fb5;padding:2px 8px;border-radius:4px;font-size:10px;text-decoration:none;white-space:nowrap">${l.contact_linkedin_url ? 'in' : '🏢'}</a>`
-      : '<span style="color:var(--text3);font-size:11px">—</span>';
+        const liBtn = (l.contact_linkedin_url || l.company_linkedin_url)
+          ? `<a href="${l.contact_linkedin_url || (l.company_linkedin_url?.startsWith('http') ? l.company_linkedin_url : 'https://' + l.company_linkedin_url)}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,119,181,0.15);border:1px solid rgba(0,119,181,0.3);color:#0a8fb5;padding:2px 8px;border-radius:4px;font-size:10px;text-decoration:none;white-space:nowrap">${l.contact_linkedin_url ? 'in' : '🏢'}</a>`
+          : '<span style="color:var(--text3);font-size:11px">—</span>';
 
-    const displayNameR = l.company_name || l.domain_derived_name || l.canonical_domain || '—';
-    const nameStyleR = !l.company_name ? 'opacity:.7;font-style:italic' : '';
+        const displayNameR = l.company_name || l.domain_derived_name || l.canonical_domain || '—';
+        const nameStyleR = !l.company_name ? 'opacity:.7;font-style:italic' : '';
 
-    const sources = Array.isArray(l.enrichment_sources) && l.enrichment_sources.length
-      ? l.enrichment_sources.map(s => `<span style="background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.15);color:var(--cyan);padding:1px 6px;border-radius:3px;font-size:9px;margin-right:3px">${s}</span>`).join('')
-      : '<span style="color:var(--text3);font-size:10px">builtwith</span>';
+        const sources = Array.isArray(l.enrichment_sources) && l.enrichment_sources.length
+          ? l.enrichment_sources.map(s => `<span style="background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.15);color:var(--cyan);padding:1px 6px;border-radius:3px;font-size:9px;margin-right:3px">${s}</span>`).join('')
+          : '<span style="color:var(--text3);font-size:10px">builtwith</span>';
 
-    const phone = l.first_contact_phone
-      ? `<a href="tel:${l.first_contact_phone}" style="color:var(--cyan);text-decoration:none;font-size:11px;white-space:nowrap">${l.first_contact_phone}</a>`
-      : '<span style="color:var(--text3)">—</span>';
+        const phone = l.first_contact_phone
+          ? `<a href="tel:${l.first_contact_phone}" style="color:var(--cyan);text-decoration:none;font-size:11px;white-space:nowrap">${l.first_contact_phone}</a>`
+          : '<span style="color:var(--text3)">—</span>';
 
-    const porQueR = l.trigger_technology || l.recommended_offer
-      ? `<div style="max-width:190px">
+        const porQueR = l.trigger_technology || l.recommended_offer
+          ? `<div style="max-width:190px">
           ${l.trigger_technology ? `<span style="display:inline-block;background:rgba(124,108,252,0.12);border:1px solid rgba(124,108,252,0.25);color:#a78bfa;padding:1px 7px;border-radius:3px;font-size:9px;font-weight:600;margin-bottom:3px">${l.trigger_technology}</span>` : ''}
           ${l.recommended_offer ? `<div style="font-size:10px;color:var(--cyan);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px" title="${l.recommended_offer}">${l.recommended_offer}</div>` : ''}
           ${l.offering_rationale ? `<div style="font-size:9px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px" title="${l.offering_rationale}">${l.offering_rationale}</div>` : ''}
         </div>`
-      : '<span style="color:var(--text3);font-size:11px">—</span>';
+          : '<span style="color:var(--text3);font-size:11px">—</span>';
 
-    if (locked) return `<tr class="row locked" title="Asignado a: ${l.assigned_to_partner}">
+        if (locked) return `<tr class="row locked" title="Asignado a: ${l.assigned_to_partner}">
       <td style="text-align:center"><input type="checkbox" disabled/></td>
       <td class="company" style="opacity:.5">${displayNameR}</td>
-      <td style="opacity:.5">${l.country||'—'}</td>
-      <td><span class="tag ${tc}" style="opacity:.4">${l.west_telco_product||'—'}</span></td>
+      <td style="opacity:.5">${l.country || '—'}</td>
+      <td><span class="tag ${tc}" style="opacity:.4">${l.west_telco_product || '—'}</span></td>
       <td><span class="score ${sc}" style="opacity:.4">${s}</span></td>
       <td colspan="7" style="opacity:.5"><span class="asgn-badge">⬡ ${l.assigned_to_partner}</span></td>
       <td></td>
     </tr>`;
 
-    return `<tr class="row ${reportSelected.has(l.id)?'selected':''}" id="rrow-${l.id}" onclick="toggleR(${l.id},event)">
+        return `<tr class="row ${reportSelected.has(l.id) ? 'selected' : ''}" id="rrow-${l.id}" onclick="toggleR(${l.id},event)">
       <td style="text-align:center"><input type="checkbox" ${chk} onclick="toggleR(${l.id},event)"/></td>
       <td class="company" style="${nameStyleR}">
         <div style="display:flex;align-items:center;gap:6px">
@@ -1338,30 +1732,28 @@ function renderReportTable() {
             id="rbtn-${l.id}"
             style="background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);color:var(--cyan);width:18px;height:18px;border-radius:3px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0"
             title="Ver contactos enriquecidos">+</button>
-          <span title="${l.canonical_domain||''}">${displayNameR}</span>
+          <span title="${l.canonical_domain || ''}">${displayNameR}</span>
         </div>
       </td>
-      <td>${l.country||'—'}</td>
-      <td><span class="tag ${tc}">${l.west_telco_product||'—'}</span></td>
+      <td>${l.country || '—'}</td>
+      <td><span class="tag ${tc}">${l.west_telco_product || '—'}</span></td>
       <td><span class="score ${sc}">${s}</span></td>
       <td style="font-size:11px;color:var(--cyan)">${l.company_vertical && l.company_vertical !== 'Unknown' ? l.company_vertical : '—'}</td>
-      <td style="font-size:11px;color:var(--text2)">${l.company_employees||'—'}</td>
-      <td style="font-size:11px;color:var(--green)">${l.company_tech_spend||'—'}</td>
+      <td style="font-size:11px;color:var(--text2)">${l.company_employees || '—'}</td>
+      <td style="font-size:11px;color:var(--green)">${l.company_tech_spend || '—'}</td>
       <td class="email-td">
         ${l.first_contact_email
-          ? `<div style="display:flex;flex-direction:column;gap:2px">
+            ? `<div style="display:flex;flex-direction:column;gap:2px">
               <span>${l.first_contact_email}</span>
-              <span style="font-size:8px;padding:1px 4px;border-radius:3px;width:fit-content;${
-                l.email_source==='verified'  ? 'background:rgba(0,212,255,0.15);color:var(--cyan)' :
-                l.email_source==='pattern'   ? 'background:rgba(80,220,80,0.15);color:#6ddd88' :
+              <span style="font-size:8px;padding:1px 4px;border-radius:3px;width:fit-content;${l.email_source === 'verified' ? 'background:rgba(0,212,255,0.15);color:var(--cyan)' :
+              l.email_source === 'pattern' ? 'background:rgba(80,220,80,0.15);color:#6ddd88' :
                 'background:rgba(255,180,0,0.12);color:#ffb400'
-              }">${
-                l.email_source==='verified'  ? '✓ verificado' :
-                l.email_source==='pattern'   ? '~ patrón' :
+            }">${l.email_source === 'verified' ? '✓ verificado' :
+              l.email_source === 'pattern' ? '~ patrón' :
                 '○ inferido'
-              }</span>
+            }</span>
             </div>`
-          : '—'}
+            : '—'}
       </td>
       <td>${phone}</td>
       <td>${porQueR}</td>
@@ -1374,126 +1766,126 @@ function renderReportTable() {
         </div>
       </td>
     </tr>`;
-  }).join('');
-  updateRUI();
-  renderPag('r', reportTotal, reportPage, p => { loadReportLeadsFiltered(p); });
-}
+      }).join('');
+      updateRUI();
+      renderPag('r', reportTotal, reportPage, p => { loadReportLeadsFiltered(p); });
+    }
 
-function toggleR(id, e) {
-  const l = reportLeads.find(x => x.id===id);
-  if (!l || l.assigned_to_partner) return;
-  if (e.target.tagName==='INPUT') { if(e.target.checked) reportSelected.add(id); else reportSelected.delete(id); }
-  else { if(reportSelected.has(id)) reportSelected.delete(id); else reportSelected.add(id); }
-  renderReportTable();
-}
+    function toggleR(id, e) {
+      const l = reportLeads.find(x => x.id === id);
+      if (!l || l.assigned_to_partner) return;
+      if (e.target.tagName === 'INPUT') { if (e.target.checked) reportSelected.add(id); else reportSelected.delete(id); }
+      else { if (reportSelected.has(id)) reportSelected.delete(id); else reportSelected.add(id); }
+      renderReportTable();
+    }
 
-function toggleAllReport(c) {
-  filteredReport.slice((reportPage-1)*PAGE, reportPage*PAGE).filter(l=>!l.assigned_to_partner).forEach(l => c ? reportSelected.add(l.id) : reportSelected.delete(l.id));
-  renderReportTable();
-}
+    function toggleAllReport(c) {
+      filteredReport.slice((reportPage - 1) * PAGE, reportPage * PAGE).filter(l => !l.assigned_to_partner).forEach(l => c ? reportSelected.add(l.id) : reportSelected.delete(l.id));
+      renderReportTable();
+    }
 
-function selectAllReport() { filteredReport.filter(l=>!l.assigned_to_partner).forEach(l => reportSelected.add(l.id)); renderReportTable(); }
-function clearReportSel() { reportSelected.clear(); renderReportTable(); }
+    function selectAllReport() { filteredReport.filter(l => !l.assigned_to_partner).forEach(l => reportSelected.add(l.id)); renderReportTable(); }
+    function clearReportSel() { reportSelected.clear(); renderReportTable(); }
 
-function updateRUI() {
-  const n = reportSelected.size;
-  set('r-badge', `${n} seleccionados`);
-  document.getElementById('btn-generate').disabled = n===0;
-  document.getElementById('btn-export').disabled = n===0;
-}
+    function updateRUI() {
+      const n = reportSelected.size;
+      set('r-badge', `${n} seleccionados`);
+      document.getElementById('btn-generate').disabled = n === 0;
+      document.getElementById('btn-export').disabled = n === 0;
+    }
 
-// ===== MODAL =====
-function openConfirm() {
-  const name = document.getElementById('rp-name').value.trim();
-  const email = document.getElementById('rp-email').value.trim();
-  const period = document.getElementById('rp-period').value.trim();
-  if (!name||!email||!period) { toast('Completa nombre, email y periodo', 'e'); return; }
-  set('m-partner', name); set('m-email', email); set('m-period', period); set('m-count', reportSelected.size);
-  document.getElementById('modal-sub').textContent = `Se asignarán ${reportSelected.size} leads a este partner.`;
-  document.getElementById('modal').style.display = 'flex';
-}
-function closeModal() { document.getElementById('modal').style.display='none'; }
+    // ===== MODAL =====
+    function openConfirm() {
+      const name = document.getElementById('rp-name').value.trim();
+      const email = document.getElementById('rp-email').value.trim();
+      const period = document.getElementById('rp-period').value.trim();
+      if (!name || !email || !period) { toast('Completa nombre, email y periodo', 'e'); return; }
+      set('m-partner', name); set('m-email', email); set('m-period', period); set('m-count', reportSelected.size);
+      document.getElementById('modal-sub').textContent = `Se asignarán ${reportSelected.size} leads a este partner.`;
+      document.getElementById('modal').style.display = 'flex';
+    }
+    function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
-// ===== GENERATE =====
-async function generateReport() {
-  closeModal();
-  const name   = document.getElementById('rp-name').value.trim();
-  const email  = document.getElementById('rp-email').value.trim();
-  const period = document.getElementById('rp-period').value.trim();
-  const notes  = document.getElementById('rp-notes').value.trim();
-  const leads  = reportLeads.filter(l => reportSelected.has(l.id));
-  const btn = document.getElementById('btn-generate');
-  btn.disabled = true; btn.textContent = '⟳ Guardando...';
+    // ===== GENERATE =====
+    async function generateReport() {
+      closeModal();
+      const name = document.getElementById('rp-name').value.trim();
+      const email = document.getElementById('rp-email').value.trim();
+      const period = document.getElementById('rp-period').value.trim();
+      const notes = document.getElementById('rp-notes').value.trim();
+      const leads = reportLeads.filter(l => reportSelected.has(l.id));
+      const btn = document.getElementById('btn-generate');
+      btn.disabled = true; btn.textContent = '⟳ Guardando...';
 
-  const { data: report, error: re } = await sb.from('partner_reports').insert({
-    partner_name: name, partner_email: email, period_label: period,
-    notes: notes||null, status: 'ready', total_leads: leads.length,
-    created_by: 'west_telco_internal', generated_at: new Date().toISOString()
-  }).select().single();
+      const { data: report, error: re } = await sb.from('partner_reports').insert({
+        partner_name: name, partner_email: email, period_label: period,
+        notes: notes || null, status: 'ready', total_leads: leads.length,
+        created_by: 'west_telco_internal', generated_at: new Date().toISOString()
+      }).select().single();
 
-  if (re) { toast('Error: '+re.message, 'e'); btn.disabled=false; btn.textContent='→ Generar y asignar'; return; }
+      if (re) { toast('Error: ' + re.message, 'e'); btn.disabled = false; btn.textContent = '→ Generar y asignar'; return; }
 
-  await sb.from('partner_report_leads').insert(leads.map(l => ({
-    report_id: report.id, target_id: l.id,
-    company_name: l.company_name, country: l.country, territory: l.territory,
-    product: l.west_telco_product, priority_score: l.priority_score,
-    contact_name: l.first_contact_name, contact_email: l.first_contact_email,
-    offering_rationale: l.offering_rationale
-  })));
+      await sb.from('partner_report_leads').insert(leads.map(l => ({
+        report_id: report.id, target_id: l.id,
+        company_name: l.company_name, country: l.country, territory: l.territory,
+        product: l.west_telco_product, priority_score: l.priority_score,
+        contact_name: l.first_contact_name, contact_email: l.first_contact_email,
+        offering_rationale: l.offering_rationale
+      })));
 
-  await sb.from('builtwith_company_targets').update({
-    assigned_to_partner: name, assigned_at: new Date().toISOString(), assigned_report_id: report.id
-  }).in('id', leads.map(l=>l.id));
+      await sb.from('builtwith_company_targets').update({
+        assigned_to_partner: name, assigned_at: new Date().toISOString(), assigned_report_id: report.id
+      }).in('id', leads.map(l => l.id));
 
-  toast(`✓ ${leads.length} leads asignados a ${name}`, 's');
-  exportExcel(leads, name, period);
-  reportSelected.clear();
-  await Promise.all([loadStats(), loadReportLeads(), loadAllLeads()]);
-  btn.disabled=false; btn.textContent='→ Generar y asignar';
-  ['rp-name','rp-email','rp-period','rp-notes'].forEach(id => document.getElementById(id).value='');
-}
+      toast(`✓ ${leads.length} leads asignados a ${name}`, 's');
+      exportExcel(leads, name, period);
+      reportSelected.clear();
+      await Promise.all([loadStats(), loadReportLeads(), loadAllLeads()]);
+      btn.disabled = false; btn.textContent = '→ Generar y asignar';
+      ['rp-name', 'rp-email', 'rp-period', 'rp-notes'].forEach(id => document.getElementById(id).value = '');
+    }
 
-// ===== EXPORT =====
-function exportExcel(leads, pName, pPeriod) {
-  const data = leads || reportLeads.filter(l=>reportSelected.has(l.id));
-  if (!data.length) return;
-  const rows = data.map(l => ({
-    'Empresa':              l.company_name || l.domain_derived_name || l.canonical_domain || '',
-    'Dominio':              l.canonical_domain || '',
-    'País':                 l.country || '',
-    'Territorio':           l.territory || '',
-    'Producto recomendado': l.west_telco_product || '',
-    'Score':                l.priority_score || 0,
-    'Industria':            l.company_vertical && l.company_vertical !== 'Unknown' ? l.company_vertical : '',
-    'Empleados':            l.company_employees || '',
-    'Nombre contacto':      l.first_contact_name || '',
-    'Cargo':                l.contact_position || '',
-    'Seniority':            l.seniority || '',
-    'Email contacto':       l.first_contact_email || '',
-    'Confianza email':      l.email_source === 'verified' ? 'Verificado' : l.email_source === 'pattern' ? 'Patrón confirmado' : 'Inferido',
-    'Teléfono':             l.first_contact_phone || '',
-    'LinkedIn contacto':    l.linkedin_url || '',
-    'LinkedIn empresa':     l.company_linkedin_url || '',
-    'Tecnología detectada': l.trigger_technology || '',
-    'Oferta recomendada':   l.recommended_offer || '',
-    'Por qué':              l.offering_rationale || ''
-  }));
-  const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [22,20,8,12,20,6,18,10,12,10,22,18,28,14,30,30,18,30,40].map(w=>({wch:w}));
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Leads');
-  XLSX.writeFile(wb, `WestTelco_${pName||'partner'}_${pPeriod||'reporte'}.xlsx`.replace(/\s+/g,'_'));
-}
+    // ===== EXPORT =====
+    function exportExcel(leads, pName, pPeriod) {
+      const data = leads || reportLeads.filter(l => reportSelected.has(l.id));
+      if (!data.length) return;
+      const rows = data.map(l => ({
+        'Empresa': l.company_name || l.domain_derived_name || l.canonical_domain || '',
+        'Dominio': l.canonical_domain || '',
+        'País': l.country || '',
+        'Territorio': l.territory || '',
+        'Producto recomendado': l.west_telco_product || '',
+        'Score': l.priority_score || 0,
+        'Industria': l.company_vertical && l.company_vertical !== 'Unknown' ? l.company_vertical : '',
+        'Empleados': l.company_employees || '',
+        'Nombre contacto': l.first_contact_name || '',
+        'Cargo': l.contact_position || '',
+        'Seniority': l.seniority || '',
+        'Email contacto': l.first_contact_email || '',
+        'Confianza email': l.email_source === 'verified' ? 'Verificado' : l.email_source === 'pattern' ? 'Patrón confirmado' : 'Inferido',
+        'Teléfono': l.first_contact_phone || '',
+        'LinkedIn contacto': l.linkedin_url || '',
+        'LinkedIn empresa': l.company_linkedin_url || '',
+        'Tecnología detectada': l.trigger_technology || '',
+        'Oferta recomendada': l.recommended_offer || '',
+        'Por qué': l.offering_rationale || ''
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws['!cols'] = [22, 20, 8, 12, 20, 6, 18, 10, 12, 10, 22, 18, 28, 14, 30, 30, 18, 30, 40].map(w => ({ wch: w }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Leads');
+      XLSX.writeFile(wb, `WestTelco_${pName || 'partner'}_${pPeriod || 'reporte'}.xlsx`.replace(/\s+/g, '_'));
+    }
 
-// ===== HISTORY =====
-async function loadHistory() {
-  const { data } = await sb.from('partner_reports').select('*').order('created_at',{ascending:false}).limit(100);
-  const tbody = document.getElementById('hist-tbody');
-  if (!data?.length) { tbody.innerHTML='<tr><td colspan="8"><div class="empty">Sin reportes aún</div></td></tr>'; return; }
-  tbody.innerHTML = data.map(r => {
-    const date = new Date(r.created_at).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
-    const sc = r.status==='ready'?'var(--green)':r.status==='sent'?'var(--cyan)':'var(--text3)';
-    return `<tr class="row">
+    // ===== HISTORY =====
+    async function loadHistory() {
+      const { data } = await sb.from('partner_reports').select('*').order('created_at', { ascending: false }).limit(100);
+      const tbody = document.getElementById('hist-tbody');
+      if (!data?.length) { tbody.innerHTML = '<tr><td colspan="8"><div class="empty">Sin reportes aún</div></td></tr>'; return; }
+      tbody.innerHTML = data.map(r => {
+        const date = new Date(r.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+        const sc = r.status === 'ready' ? 'var(--green)' : r.status === 'sent' ? 'var(--cyan)' : 'var(--text3)';
+        return `<tr class="row">
       <td><button class="expand-btn" onclick="toggleLeads('${r.id}',this)">▶</button></td>
       <td style="color:var(--text);font-weight:500">${r.partner_name}</td>
       <td class="email-td">${r.partner_email}</td>
@@ -1501,216 +1893,216 @@ async function loadHistory() {
       <td><span class="score h">${r.total_leads}</span></td>
       <td style="color:${sc};font-size:11px">${r.status}</td>
       <td style="font-size:11px;color:var(--text3)">${date}</td>
-      <td style="font-size:11px;color:var(--text3)">${r.notes||'—'}</td>
+      <td style="font-size:11px;color:var(--text3)">${r.notes || '—'}</td>
     </tr>
     <tr id="sub-${r.id}" style="display:none"><td colspan="8" style="padding:0">
       <div id="sub-c-${r.id}" style="padding:8px 14px;background:var(--navy3)"><div class="loading"><div class="spinner"></div></div></div>
     </td></tr>`;
-  }).join('');
-}
+      }).join('');
+    }
 
-async function toggleLeads(rid, btn) {
-  const row = document.getElementById('sub-'+rid);
-  const content = document.getElementById('sub-c-'+rid);
-  if (row.style.display==='none') {
-    row.style.display='table-row'; btn.textContent='▼';
-    const { data } = await sb.from('partner_report_leads').select('*').eq('report_id',rid).limit(200);
-    if (!data?.length) { content.innerHTML='<p style="color:var(--text3);font-size:11px;padding:8px">Sin leads registrados</p>'; return; }
-    content.innerHTML=`<table style="width:100%"><thead><tr style="background:var(--navy4)">
-      ${['Empresa','País','Producto','Score','Email'].map(h=>`<th style="padding:8px 12px;font-size:10px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase">${h}</th>`).join('')}
-    </tr></thead><tbody>${data.map(l=>`<tr style="border-top:1px solid var(--border)">
-      <td style="padding:8px 12px;font-size:11px;color:var(--text)">${l.company_name||'—'}</td>
-      <td style="padding:8px 12px;font-size:11px;color:var(--text2)">${l.country||'—'}</td>
-      <td style="padding:8px 12px;font-size:11px"><span class="tag ${tagClass(l.product)}">${l.product||'—'}</span></td>
-      <td style="padding:8px 12px;font-size:11px"><span class="score ${l.priority_score>=35?'h':l.priority_score>=20?'m':'l'}">${l.priority_score||0}</span></td>
-      <td style="padding:8px 12px;font-size:11px;color:var(--text2)">${l.contact_email||'—'}</td>
+    async function toggleLeads(rid, btn) {
+      const row = document.getElementById('sub-' + rid);
+      const content = document.getElementById('sub-c-' + rid);
+      if (row.style.display === 'none') {
+        row.style.display = 'table-row'; btn.textContent = '▼';
+        const { data } = await sb.from('partner_report_leads').select('*').eq('report_id', rid).limit(200);
+        if (!data?.length) { content.innerHTML = '<p style="color:var(--text3);font-size:11px;padding:8px">Sin leads registrados</p>'; return; }
+        content.innerHTML = `<table style="width:100%"><thead><tr style="background:var(--navy4)">
+      ${['Empresa', 'País', 'Producto', 'Score', 'Email'].map(h => `<th style="padding:8px 12px;font-size:10px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase">${h}</th>`).join('')}
+    </tr></thead><tbody>${data.map(l => `<tr style="border-top:1px solid var(--border)">
+      <td style="padding:8px 12px;font-size:11px;color:var(--text)">${l.company_name || '—'}</td>
+      <td style="padding:8px 12px;font-size:11px;color:var(--text2)">${l.country || '—'}</td>
+      <td style="padding:8px 12px;font-size:11px"><span class="tag ${tagClass(l.product)}">${l.product || '—'}</span></td>
+      <td style="padding:8px 12px;font-size:11px"><span class="score ${l.priority_score >= 35 ? 'h' : l.priority_score >= 20 ? 'm' : 'l'}">${l.priority_score || 0}</span></td>
+      <td style="padding:8px 12px;font-size:11px;color:var(--text2)">${l.contact_email || '—'}</td>
     </tr>`).join('')}</tbody></table>`;
-  } else { row.style.display='none'; btn.textContent='▶'; }
-}
-
-// ===== HELPERS =====
-function tagClass(p) {
-  const pr = (p||'').toLowerCase();
-  return pr.includes('zoom')?'zoom':pr.includes('xcally')?'xcally':pr.includes('edb')?'edb':pr.includes('solar')?'solarwinds':'dropbox';
-}
-
-function renderPag(prefix, total, current, cb) {
-  const pages = Math.ceil(total/PAGE);
-  const cbStr = cb.toString();
-
-  function buildHtml() {
-    const s=(current-1)*PAGE+1, e=Math.min(current*PAGE,total);
-    let btns = `<button class="page-btn" ${current===1?'disabled':''} onclick="(${cbStr})(${current-1});window.scrollTo(0,0)">‹</button>`;
-    for(let i=Math.max(1,current-2);i<=Math.min(pages,current+2);i++) {
-      btns+=`<button class="page-btn ${i===current?'active':''}" onclick="(${cbStr})(${i});window.scrollTo(0,0)">${i}</button>`;
+      } else { row.style.display = 'none'; btn.textContent = '▶'; }
     }
-    btns+=`<button class="page-btn" ${current===pages?'disabled':''} onclick="(${cbStr})(${current+1});window.scrollTo(0,0)">›</button>`;
-    return { info: `Mostrando ${s}–${e} de ${total.toLocaleString()}`, btns };
-  }
 
-  // Top pagination
-  const pagTop = document.getElementById(prefix+'-pag');
-  if (pagTop) {
-    if (pages<=1) { pagTop.style.display='none'; }
-    else {
-      pagTop.style.display='flex';
-      const { info, btns } = buildHtml();
-      const infoEl = document.getElementById(prefix+'-pinfo');
-      const btnsEl = document.getElementById(prefix+'-pbtns');
-      if (infoEl) infoEl.textContent = info;
-      if (btnsEl) btnsEl.innerHTML = btns;
+    // ===== HELPERS =====
+    function tagClass(p) {
+      const pr = (p || '').toLowerCase();
+      return pr.includes('zoom') ? 'zoom' : pr.includes('xcally') ? 'xcally' : pr.includes('edb') ? 'edb' : pr.includes('solar') ? 'solarwinds' : 'dropbox';
     }
-  }
 
-  // Bottom pagination
-  const pagBot = document.getElementById(prefix+'-pag-bottom');
-  if (pagBot) {
-    if (pages<=1) { pagBot.style.display='none'; }
-    else {
-      pagBot.style.display='flex';
-      const { info, btns } = buildHtml();
-      const infoEl = document.getElementById(prefix+'-pinfo-bottom');
-      const btnsEl = document.getElementById(prefix+'-pbtns-bottom');
-      if (infoEl) infoEl.textContent = info;
-      if (btnsEl) btnsEl.innerHTML = btns;
+    function renderPag(prefix, total, current, cb) {
+      const pages = Math.ceil(total / PAGE);
+      const cbStr = cb.toString();
+
+      function buildHtml() {
+        const s = (current - 1) * PAGE + 1, e = Math.min(current * PAGE, total);
+        let btns = `<button class="page-btn" ${current === 1 ? 'disabled' : ''} onclick="(${cbStr})(${current - 1});window.scrollTo(0,0)">‹</button>`;
+        for (let i = Math.max(1, current - 2); i <= Math.min(pages, current + 2); i++) {
+          btns += `<button class="page-btn ${i === current ? 'active' : ''}" onclick="(${cbStr})(${i});window.scrollTo(0,0)">${i}</button>`;
+        }
+        btns += `<button class="page-btn" ${current === pages ? 'disabled' : ''} onclick="(${cbStr})(${current + 1});window.scrollTo(0,0)">›</button>`;
+        return { info: `Mostrando ${s}–${e} de ${total.toLocaleString()}`, btns };
+      }
+
+      // Top pagination
+      const pagTop = document.getElementById(prefix + '-pag');
+      if (pagTop) {
+        if (pages <= 1) { pagTop.style.display = 'none'; }
+        else {
+          pagTop.style.display = 'flex';
+          const { info, btns } = buildHtml();
+          const infoEl = document.getElementById(prefix + '-pinfo');
+          const btnsEl = document.getElementById(prefix + '-pbtns');
+          if (infoEl) infoEl.textContent = info;
+          if (btnsEl) btnsEl.innerHTML = btns;
+        }
+      }
+
+      // Bottom pagination
+      const pagBot = document.getElementById(prefix + '-pag-bottom');
+      if (pagBot) {
+        if (pages <= 1) { pagBot.style.display = 'none'; }
+        else {
+          pagBot.style.display = 'flex';
+          const { info, btns } = buildHtml();
+          const infoEl = document.getElementById(prefix + '-pinfo-bottom');
+          const btnsEl = document.getElementById(prefix + '-pbtns-bottom');
+          if (infoEl) infoEl.textContent = info;
+          if (btnsEl) btnsEl.innerHTML = btns;
+        }
+      }
     }
-  }
-}
 
-function toast(msg, type='i') {
-  const c=document.getElementById('toasts');
-  const t=document.createElement('div');
-  t.className=`toast ${type}`;
-  t.textContent=msg;
-  c.appendChild(t);
-  setTimeout(()=>t.remove(),4500);
-}
+    function toast(msg, type = 'i') {
+      const c = document.getElementById('toasts');
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.textContent = msg;
+      c.appendChild(t);
+      setTimeout(() => t.remove(), 4500);
+    }
 
-// ===== SORT =====
-function sortAll(col) {
-  if (allSortCol === col) allSortDir = allSortDir === 'asc' ? 'desc' : 'asc';
-  else { allSortCol = col; allSortDir = 'asc'; }
-  updateSortIcons('si-', allSortCol, allSortDir);
-  loadAllLeadsFiltered(1);
-}
+    // ===== SORT =====
+    function sortAll(col) {
+      if (allSortCol === col) allSortDir = allSortDir === 'asc' ? 'desc' : 'asc';
+      else { allSortCol = col; allSortDir = 'asc'; }
+      updateSortIcons('si-', allSortCol, allSortDir);
+      loadAllLeadsFiltered(1);
+    }
 
-function sortReport(col) {
-  if (repSortCol === col) repSortDir = repSortDir === 'asc' ? 'desc' : 'asc';
-  else { repSortCol = col; repSortDir = 'asc'; }
-  updateSortIcons('rsi-', repSortCol, repSortDir);
-  loadReportLeadsFiltered(1);
-}
+    function sortReport(col) {
+      if (repSortCol === col) repSortDir = repSortDir === 'asc' ? 'desc' : 'asc';
+      else { repSortCol = col; repSortDir = 'asc'; }
+      updateSortIcons('rsi-', repSortCol, repSortDir);
+      loadReportLeadsFiltered(1);
+    }
 
-function updateSortIcons(prefix, col, dir) {
-  document.querySelectorAll('.sortable').forEach(el => el.classList.remove('asc','desc'));
-  const icon = document.getElementById(prefix + col);
-  if (icon) {
-    icon.textContent = dir === 'asc' ? '↑' : '↓';
-    icon.closest('th')?.classList.add(dir);
-  }
-}
+    function updateSortIcons(prefix, col, dir) {
+      document.querySelectorAll('.sortable').forEach(el => el.classList.remove('asc', 'desc'));
+      const icon = document.getElementById(prefix + col);
+      if (icon) {
+        icon.textContent = dir === 'asc' ? '↑' : '↓';
+        icon.closest('th')?.classList.add(dir);
+      }
+    }
 
-// ===== SIDEBAR =====
-function toggleSidebar() {
-  const s = document.getElementById('sidebar');
-  const o = document.getElementById('sidebar-overlay');
-  const b = document.getElementById('sidebar-toggle');
-  const isOpen = s.classList.contains('open');
-  if (isOpen) { closeSidebar(); } else {
-    s.classList.add('open');
-    o.classList.add('visible');
-    b.classList.add('open');
-  }
-}
+    // ===== SIDEBAR =====
+    function toggleSidebar() {
+      const s = document.getElementById('sidebar');
+      const o = document.getElementById('sidebar-overlay');
+      const b = document.getElementById('sidebar-toggle');
+      const isOpen = s.classList.contains('open');
+      if (isOpen) { closeSidebar(); } else {
+        s.classList.add('open');
+        o.classList.add('visible');
+        b.classList.add('open');
+      }
+    }
 
-function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebar-overlay').classList.remove('visible');
-  document.getElementById('sidebar-toggle').classList.remove('open');
-}
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebar-overlay').classList.remove('visible');
+      document.getElementById('sidebar-toggle').classList.remove('open');
+    }
 
-// Close sidebar when a nav item is clicked
-function showView(v) {
-  closeSidebar();
-  ['all','report','history'].forEach((n,i) => {
-    document.getElementById('view-'+n).style.display = n===v ? 'block' : 'none';
-    document.querySelectorAll('.nav-item')[i].classList.toggle('active', n===v);
-  });
-  const titles = { all:'Universo de leads', report:'Leads calificados', history:'Histórico de reportes' };
-  set('view-title', titles[v]);
-  if (v==='report' && reportLeads.length===0) loadReportLeads(1);
-  if (v==='history') loadHistory();
-}
+    // Close sidebar when a nav item is clicked
+    function showView(v) {
+      closeSidebar();
+      ['all', 'report', 'history'].forEach((n, i) => {
+        document.getElementById('view-' + n).style.display = n === v ? 'block' : 'none';
+        document.querySelectorAll('.nav-item')[i].classList.toggle('active', n === v);
+      });
+      const titles = { all: 'Universo de leads', report: 'Leads calificados', history: 'Histórico de reportes' };
+      set('view-title', titles[v]);
+      if (v === 'report' && reportLeads.length === 0) loadReportLeads(1);
+      if (v === 'history') loadHistory();
+    }
 
-// ===== CONTACTS PANEL =====
-const contactsCache = {};
+    // ===== CONTACTS PANEL =====
+    const contactsCache = {};
 
-async function toggleContacts(domain, rowId, prefix = '') {
-  const panelId = prefix ? `rcontacts-${rowId}` : `contacts-${rowId}`;
-  const innerId = prefix ? `rcontacts-inner-${rowId}` : `contacts-inner-${rowId}`;
-  const btnId   = prefix ? `rbtn-${rowId}` : `btn-${rowId}`;
-  const panel   = document.getElementById(panelId);
-  const btn     = document.getElementById(btnId);
-  if (!panel) return;
+    async function toggleContacts(domain, rowId, prefix = '') {
+      const panelId = prefix ? `rcontacts-${rowId}` : `contacts-${rowId}`;
+      const innerId = prefix ? `rcontacts-inner-${rowId}` : `contacts-inner-${rowId}`;
+      const btnId = prefix ? `rbtn-${rowId}` : `btn-${rowId}`;
+      const panel = document.getElementById(panelId);
+      const btn = document.getElementById(btnId);
+      if (!panel) return;
 
-  const isOpen = panel.style.display !== 'none';
-  if (isOpen) {
-    panel.style.display = 'none';
-    if (btn) btn.textContent = '+';
-    return;
-  }
+      const isOpen = panel.style.display !== 'none';
+      if (isOpen) {
+        panel.style.display = 'none';
+        if (btn) btn.textContent = '+';
+        return;
+      }
 
-  panel.style.display = 'table-row';
-  if (btn) btn.textContent = '−';
+      panel.style.display = 'table-row';
+      if (btn) btn.textContent = '−';
 
-  // Si ya está en caché, solo renderiza
-  if (contactsCache[domain]) {
-    document.getElementById(innerId).innerHTML = renderContactsPanel(contactsCache[domain], domain);
-    return;
-  }
+      // Si ya está en caché, solo renderiza
+      if (contactsCache[domain]) {
+        document.getElementById(innerId).innerHTML = renderContactsPanel(contactsCache[domain], domain);
+        return;
+      }
 
-  // Fetch desde Supabase
-  const { data } = await sb.from('target_contacts')
-    .select('full_name,job_title,seniority,email,email_confidence,phone,linkedin_url,relevant_for_products,relevance_score,is_primary,source')
-    .eq('canonical_domain', domain)
-    .order('relevance_score', { ascending: false })
-    .order('is_primary', { ascending: false });
+      // Fetch desde Supabase
+      const { data } = await sb.from('target_contacts')
+        .select('full_name,job_title,seniority,email,email_confidence,phone,linkedin_url,relevant_for_products,relevance_score,is_primary,source')
+        .eq('canonical_domain', domain)
+        .order('relevance_score', { ascending: false })
+        .order('is_primary', { ascending: false });
 
-  contactsCache[domain] = data || [];
-  document.getElementById(innerId).innerHTML = renderContactsPanel(contactsCache[domain], domain);
-}
+      contactsCache[domain] = data || [];
+      document.getElementById(innerId).innerHTML = renderContactsPanel(contactsCache[domain], domain);
+    }
 
-function renderContactsPanel(contacts, domain) {
-  if (!contacts.length) {
-    return `<div style="font-size:11px;color:var(--text3);padding:4px 0">
+    function renderContactsPanel(contacts, domain) {
+      if (!contacts.length) {
+        return `<div style="font-size:11px;color:var(--text3);padding:4px 0">
       Sin contactos enriquecidos aún — 
       <span style="color:var(--cyan)">pendiente Apollo</span>
     </div>`;
-  }
+      }
 
-  const senIcon = s => s==='c_suite'?'👑':s==='vp'?'⭐':s==='director'?'◆':s==='manager'?'◇':'·';
-  const scoreColor = sc => sc>=90?'var(--green)':sc>=50?'var(--orange)':'var(--text3)';
+      const senIcon = s => s === 'c_suite' ? '👑' : s === 'vp' ? '⭐' : s === 'director' ? '◆' : s === 'manager' ? '◇' : '·';
+      const scoreColor = sc => sc >= 90 ? 'var(--green)' : sc >= 50 ? 'var(--orange)' : 'var(--text3)';
 
-  return `<div>
+      return `<div>
     <div style="font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">
-      ${contacts.length} contacto${contacts.length>1?'s':''} enriquecido${contacts.length>1?'s':''}
+      ${contacts.length} contacto${contacts.length > 1 ? 's' : ''} enriquecido${contacts.length > 1 ? 's' : ''}
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:8px">
       ${contacts.map(c => `
-        <div style="background:var(--navy3);border:1px solid ${c.is_primary?'rgba(0,212,255,0.3)':'var(--border)'};border-radius:8px;padding:10px 14px;min-width:220px;max-width:280px;position:relative">
+        <div style="background:var(--navy3);border:1px solid ${c.is_primary ? 'rgba(0,212,255,0.3)' : 'var(--border)'};border-radius:8px;padding:10px 14px;min-width:220px;max-width:280px;position:relative">
           ${c.is_primary ? `<span style="position:absolute;top:6px;right:8px;font-size:9px;background:rgba(0,212,255,0.12);color:var(--cyan);padding:1px 6px;border-radius:3px;font-weight:600">PRIMARIO</span>` : ''}
-          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;padding-right:60px">${c.full_name||'—'}</div>
-          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">${senIcon(c.seniority)} ${c.job_title||'—'}</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;padding-right:60px">${c.full_name || '—'}</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">${senIcon(c.seniority)} ${c.job_title || '—'}</div>
           <div style="display:flex;flex-direction:column;gap:3px">
             ${(c.email && c.email_confidence !== 'inferred')
-              ? `<div style="font-size:10px;color:var(--cyan);display:flex;align-items:center;gap:4px">
+          ? `<div style="font-size:10px;color:var(--cyan);display:flex;align-items:center;gap:4px">
                   ✉ <a href="mailto:${c.email}" style="color:var(--cyan);text-decoration:none">${c.email}</a>
                   ${c.email_confidence === 'verified'
-                    ? `<span title="Email verificado en fuente directa" style="font-size:8px;background:rgba(0,212,255,0.15);color:var(--cyan);padding:1px 4px;border-radius:3px;font-weight:700">✓ VER</span>`
-                    : `<span title="Patrón de dominio comprobado" style="font-size:8px;background:rgba(80,200,80,0.15);color:#6ddd88;padding:1px 4px;border-radius:3px;font-weight:700">~ PAT</span>`}
+            ? `<span title="Email verificado en fuente directa" style="font-size:8px;background:rgba(0,212,255,0.15);color:var(--cyan);padding:1px 4px;border-radius:3px;font-weight:700">✓ VER</span>`
+            : `<span title="Patrón de dominio comprobado" style="font-size:8px;background:rgba(80,200,80,0.15);color:#6ddd88;padding:1px 4px;border-radius:3px;font-weight:700">~ PAT</span>`}
                 </div>`
-              : `<div style="font-size:10px;color:var(--text3);font-style:italic">✉ Email no verificado</div>`
-            }
+          : `<div style="font-size:10px;color:var(--text3);font-style:italic">✉ Email no verificado</div>`
+        }
             ${c.phone ? `<div style="font-size:10px;color:var(--text2)">📞 ${c.phone}</div>` : ''}
             ${c.linkedin_url ? `<div style="font-size:10px"><a href="${c.linkedin_url}" target="_blank" style="color:#4da0ff;text-decoration:none">🔗 LinkedIn</a></div>` : ''}
           </div>
@@ -1723,9 +2115,10 @@ function renderContactsPanel(contacts, domain) {
       `).join('')}
     </div>
   </div>`;
-}
+    }
 
-init();
-</script>
+    init();
+  </script>
 </body>
+
 </html>

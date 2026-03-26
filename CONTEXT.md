@@ -46,3 +46,4 @@ El problema que resuelve: los equipos de ventas de los partners no saben a quié
 - n8n usa nodo Supabase nativo (no Postgres) para evitar problema de IPv6 en conexión directa
 - Pipeline procesa 100 leads/noche ordenados por priority_score DESC
 - Hunter.io como única fuente de enriquecimiento (Apollo.io como posible segunda fuente futura)
+- **Sistema de descarte implementado (26 Mar 2026):** Leads filtrados por industria no-target, datos insuficientes, tech spend nulo, y geo secundario son marcados como 'archived' en lugar de eliminarse
