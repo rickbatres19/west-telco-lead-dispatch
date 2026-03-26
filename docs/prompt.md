@@ -4,7 +4,6 @@ CONTEXTO: Tengo una base de datos masiva de 23,747 registros de empresas en mi p
 .
 TAREA: Necesito nutrir la información de estas empresas de manera eficaz para generar leads de alta calidad. Tu tarea es analizar los registros que te proporcionaré y encontrar contactos dentro de esas empresas cuyos puestos se acerquen a los roles descritos en el archivo roles_objetivo.md
 .
-FORMATO: Presenta los resultados en una tabla estructurada lista para exportar, con las siguientes columnas
 :
 Nombre de la Empresa
 Nombre del Contacto Encontrado
@@ -19,9 +18,8 @@ Manejo de datos: Como la base es de 23,747 registros, procesaremos esto por lote
 .
 ITERACIÓN: Para empezar, confírmame que has entendido las instrucciones. Luego, pídeme que te pegue el contenido de roles_objetivo.md y el primer lote de empresas de la base de datos para comenzar a trabajar. Al final de cada lote, pregúntame si los leads generados son acertados o si debemos ajustar la flexibilidad de los roles
 .
+Lo iremos haciendo en lotes de 100 cuentas por lotes. Y debes estudiar todo el contenido de mi index para que veas como es que estamos integrando todo, los cambios los iras haciendo directo en la base de datos para ir viendo los cambios en tiempo real en la herramienta web que ya esta
 
 --------------------------------------------------------------------------------
-Consejo PRO basado en las guías de Inteligencia Artificial: Dado que tienes 23,747 registros, es imposible que la IA procese todo en un solo mensaje. Te recomiendo utilizar la técnica de Prompt Chaining (Flujos Multi-Paso)
-. Esto significa que, una vez que la IA te confirme que entendió este prompt inicial, le vayas pasando los registros en "lotes" (por ejemplo, de 20 en 20 o de 50 en 50 empresas)
-. De esta manera mantendrás el control, será más fácil detectar errores y la IA no perderá coherencia al analizar la información
+
 .

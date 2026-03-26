@@ -1072,17 +1072,19 @@ async function loadStats() {
     const reportCount = reportCountRes.data || 0;
     if (!s) return;
     const available = reportCount - (s.assigned || 0);
-    set('sm-ready',    reportCount.toLocaleString());
+    // Sidebar metrics
+    set('sm-ready',    (s.ready||0).toLocaleString());
     set('sm-pending',  (s.pending||0).toLocaleString());
     set('sm-assigned', (s.assigned||0).toLocaleString());
     set('sm-available', available.toLocaleString());
-    const totalGlobal = (s.total||0) + (reportCount||0);
-    set('cv-ready',    totalGlobal.toLocaleString());
-    set('cv-enriched', reportCount.toLocaleString());
+    // Cards vista principal - TOTAL = pending + ready
+    set('cv-ready',    (s.total||0).toLocaleString());
+    set('cv-enriched', (s.ready||0).toLocaleString());
     set('cv-pending',  (s.pending||0).toLocaleString());
     set('cv-assigned', (s.assigned||0).toLocaleString());
-    set('nb-all',      (s.total||0).toLocaleString());
-    set('nb-report',   reportCount.toLocaleString());
+    // Badges sidebar
+    set('nb-all',      (s.pending||0).toLocaleString());
+    set('nb-report',   (s.ready||0).toLocaleString());
   } catch(e) { console.error('loadStats error:', e); }
 }
 
@@ -1227,7 +1229,7 @@ function renderAllTable() {
 async function loadReportLeads(page = 1) {
   reportPage = page;
   const from = (page-1)*PAGE, to = from+PAGE-1;
-  document.getElementById('report-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando leads disponibles...</div></td></tr>`;
+  document.getElementById('report-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando leads calificados...</div></td></tr>`;
   const { data, count } = await sb.from('v_report_leads')
     .select('*', { count: 'exact' })
     .order('priority_score', { ascending: false, nullsFirst: false })
@@ -1260,7 +1262,7 @@ async function loadReportLeadsFiltered(page = 1) {
   document.getElementById('report-tbody').innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>`;
 
   let q = sb.from('v_report_leads')
-    .select('*', { count: 'exact' })
+    .select('id,company_name,domain_derived_name,canonical_domain,country,territory,west_telco_product,priority_score,contact_name,contact_email,contact_phone,job_title,seniority,department,email_confidence,linkedin_url,company_linkedin_url,enrichment_sources,trigger_technology,offering_rationale,recommended_offer,assigned_to_partner,assigned_at,enrichment_status,company_tech_spend', { count: 'exact' })
     .order('priority_score', { ascending: false, nullsFirst: false });
 
   if (prod)  q = q.eq('west_telco_product', prod);
